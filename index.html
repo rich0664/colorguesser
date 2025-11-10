@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color Guessing Game</title>
+    <!-- Load Tailwind CSS from CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Use Inter font family -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Apply Inter font */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom class for feedback animation */
+        .feedback-pop {
+            animation: pop 0.5s ease-out;
+        }
+        @keyframes pop {
+            0% { transform: scale(0.9); opacity: 0; }
+            50% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        /* Ensure text is readable on any color button */
+        .color-btn-text {
+            text-shadow: 0 0 4px rgba(0, 0, 0, 0.5), 0 0 4px rgba(0, 0, 0, 0.5);
+        }
+         /* Scrollbar styling for color list */
+        #color-list-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        #color-list-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        #color-list-container::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        #color-list-container::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        /* Dark mode scrollbar */
+        .dark #color-list-container::-webkit-scrollbar-track {
+            background: #4b5563;
+        }
+        .dark #color-list-container::-webkit-scrollbar-thumb {
+            background: #6b7280;
+        }
+        .dark #color-list-container::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen flex items-center justify-center p-4 transition-colors duration-300">
+
+    <div class="max-w-md w-full">
+        <h1 class="text-3xl font-bold text-center mb-6">Color Guessing Game</h1>
+
+        <!-- Start Screen -->
+        <div id="start-screen" class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 text-center">
+            <p class="text-lg mb-6">Guess the color from the name, or the name from the color. You have 20 rounds. Good luck!</p>
+            <button id="start-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                Start Game
+            </button>
+            <!-- Hard Mode Toggle -->
+            <div class="flex items-center justify-center my-6">
+                <label for="hard-mode-toggle" class="flex items-center cursor-pointer">
+                    <span class="mr-3 font-semibold text-gray-700 dark:text-gray-300">Hard Mode</span>
+                    <div class="relative">
+                        <input type="checkbox" id="hard-mode-toggle" class="sr-only peer">
+                        <div class="w-12 h-7 bg-gray-300 dark:bg-gray-600 rounded-full shadow-inner transition-colors peer-checked:bg-red-600 dark:peer-checked:bg-red-500"></div>
+                        <div class="absolute left-1 top-1 w-5 h-5 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5"></div>
+                    </div>
+                </label>
+            </div>
+            <!-- Help Button -->
+            <button id="help-btn" class="mt-4 text-sm text-blue-600 dark:text-blue-400 hover:underline focus:outline-none">
+                Show Color Reference
+            </button>
+            <div class="mt-4 text-sm text-gray-600 dark:text-gray-400">
+                <div>Best (Easy): <span id="start-best-score-easy">0</span></div>
+                <div>Best (Hard): <span id="start-best-score-hard">0</span></div>
+            </div>
+        </div>
+ 
+        <!-- Game Screen (Initially Hidden) -->
+        <div id="game-screen" class="hidden">
+            <!-- Header Stats -->
+            <div class="flex justify-between items-center mb-4 text-sm font-semibold bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4">
+                <div>Score: <span id="score" class="font-bold text-lg text-blue-600 dark:text-blue-400">0</span></div>
+                <div>Best: <span id="best-score" class="font-bold text-lg">0</span></div>
+                <div>Round: <span id="guesses-left" class="font-bold text-lg">20</span> / 20</div>
+            </div>
+
+            <!-- Main Game Area -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6">
+                <h2 id="question-text" class="text-xl font-semibold text-center mb-4 h-12 flex items-center justify-center"></h2>
+                
+                <!-- This div shows the color swatch OR the color name -->
+                <div id="color-display" class="w-full h-48 md:h-64 rounded-lg mb-6 shadow-inner bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-4xl font-bold text-center px-4" style="text-shadow: 0 0 8px rgba(0,0,0,0.3);">
+                </div>
+
+                <!-- Options Grid -->
+                <div id="options-container" class="grid grid-cols-2 gap-4">
+                    <!-- Buttons will be generated by JS -->
+                </div>
+
+                <!-- Feedback Message -->
+                <div id="feedback" class="mt-6 text-center text-lg font-semibold h-8"></div>
+            </div>
+        </div>
+
+        <!-- End Game Screen (Initially Hidden) -->
+        <div id="end-screen" class="hidden absolute inset-0 bg-gray-900 bg-opacity-80 flex items-center justify-center p-4 z-40">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl p-8 text-center w-full max-w-sm">
+                <h2 class="text-3xl font-bold mb-4">Game Over!</h2>
+                <div id="new-best-score-text" class="text-2xl font-semibold text-yellow-500 mb-4 hidden">New Best Score!</div>
+                <div class="text-xl mb-2">Final Score: <span id="final-score" class="font-bold">0</span></div>
+                <div class="text-xl mb-6">Your Rank: <span id="rank" class="font-bold"></span></div>
+                <div class="text-lg mb-8">
+                    <div>Best (Easy): <span id="end-best-score-easy" class="font-bold">0</span></div>
+                    <div>Best (Hard): <span id="end-best-score-hard" class="font-bold">0</span></div>
+                </div>
+                <button id="play-again-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                    Play Again
+                </button>
+            </div>
+        </div>
+
+        <!-- Help Modal (Initially Hidden) -->
+        <div id="help-modal" class="hidden absolute inset-0 bg-gray-900 bg-opacity-80 flex items-center justify-center p-4 z-50">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl p-6 w-full max-w-md relative">
+                <h2 class="text-2xl font-bold mb-4 text-center">Color Reference</h2>
+                <button id="close-help-btn" class="absolute top-3 right-4 text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 text-3xl font-bold leading-none" aria-label="Close">&times;</button>
+                
+                <!-- Scrollable Color List -->
+                <div id="color-list-container" class="max-h-[60vh] overflow-y-auto pr-2">
+                    <!-- Color items will be generated by JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA: List of 147 CSS Colors ---
+        const colors = [
+            { name: "black", hex: "#000000" },
+            { name: "silver", hex: "#c0c0c0" },
+            { name: "gray", hex: "#808080" },
+            { name: "white", hex: "#ffffff" },
+            { name: "maroon", hex: "#800000" },
+            { name: "red", hex: "#ff0000" },
+            { name: "purple", hex: "#800080" },
+            { name: "fuchsia", hex: "#ff00ff" },
+            { name: "green", hex: "#008000" },
+            { name: "lime", hex: "#00ff00" },
+            { name: "olive", hex: "#808000" },
+            { name: "yellow", hex: "#ffff00" },
+            { name: "navy", hex: "#000080" },
+            { name: "blue", hex: "#0000ff" },
+            { name: "teal", hex: "#008080" },
+            { name: "aqua", hex: "#00ffff" },
+            { name: "orange", hex: "#ffa500" },
+            { name: "aliceblue", hex: "#f0f8ff" },
+            { name: "antiquewhite", hex: "#faebd7" },
+            { name: "aquamarine", hex: "#7fffd4" },
+            { name: "azure", hex: "#f0ffff" },
+            { name: "beige", hex: "#f5f5dc" },
+            { name: "bisque", hex: "#ffe4c4" },
+            { name: "blanchedalmond", hex: "#ffebcd" },
+            { name: "blueviolet", hex: "#8a2be2" },
+            { name: "brown", hex: "#a52a2a" },
+            { name: "burlywood", hex: "#deb887" },
+            { name: "cadetblue", hex: "#5f9ea0" },
+            { name: "chartreuse", hex: "#7fff00" },
+            { name: "chocolate", hex: "#d2691e" },
+            { name: "coral", hex: "#ff7f50" },
+            { name: "cornflowerblue", hex: "#6495ed" },
+            { name: "cornsilk", hex: "#fff8dc" },
+            { name: "crimson", hex: "#dc143c" },
+            { name: "cyan", hex: "#00ffff" },
+            { name: "darkblue", hex: "#00008b" },
+            { name: "darkcyan", hex: "#008b8b" },
+            { name: "darkgoldenrod", hex: "#b8860b" },
+            { name: "darkgray", hex: "#a9a9a9" },
+            { name: "darkgreen", hex: "#006400" },
+            { name: "darkgrey", hex: "#a9a9a9" },
+            { name: "darkkhaki", hex: "#bdb76b" },
+            { name: "darkmagenta", hex: "#8b008b" },
+            { name: "darkolivegreen", hex: "#556b2f" },
+            { name: "darkorange", hex: "#ff8c00" },
+            { name: "darkorchid", hex: "#9932cc" },
+            { name: "darkred", hex: "#8b0000" },
+            { name: "darksalmon", hex: "#e9967a" },
+            { name: "darkseagreen", hex: "#8fbc8f" },
+            { name: "darkslateblue", hex: "#483d8b" },
+            { name: "darkslategray", hex: "#2f4f4f" },
+            { name: "darkslategrey", hex: "#2f4f4f" },
+            { name: "darkturquoise", hex: "#00ced1" },
+            { name: "darkviolet", hex: "#9400d3" },
+            { name: "deeppink", hex: "#ff1493" },
+            { name: "deepskyblue", hex: "#00bfff" },
+            { name: "dimgray", hex: "#696969" },
+            { name: "dimgrey", hex: "#696969" },
+            { name: "dodgerblue", hex: "#1e90ff" },
+            { name: "firebrick", hex: "#b22222" },
+            { name: "floralwhite", hex: "#fffaf0" },
+            { name: "forestgreen", hex: "#228b22" },
+            { name: "gainsboro", hex: "#dcdcdc" },
+            { name: "ghostwhite", hex: "#f8f8ff" },
+            { name: "gold", hex: "#ffd700" },
+            { name: "goldenrod", hex: "#daa520" },
+            { name: "greenyellow", hex: "#adff2f" },
+            { name: "grey", hex: "#808080" },
+            { name: "honeydew", hex: "#f0fff0" },
+            { name: "hotpink", hex: "#ff69b4" },
+            { name: "indianred", hex: "#cd5c5c" },
+            { name: "indigo", hex: "#4b0082" },
+            { name: "ivory", hex: "#fffff0" },
+            { name: "khaki", hex: "#f0e68c" },
+            { name: "lavender", hex: "#e6e6fa" },
+            { name: "lavenderblush", hex: "#fff0f5" },
+            { name: "lawngreen", hex: "#7cfc00" },
+            { name: "lemonchiffon", hex: "#fffacd" },
+            { name: "lightblue", hex: "#add8e6" },
+            { name: "lightcoral", hex: "#f08080" },
+            { name: "lightcyan", hex: "#e0ffff" },
+            { name: "lightgoldenrodyellow", hex: "#fafad2" },
+            { name: "lightgray", hex: "#d3d3d3" },
+            { name: "lightgreen", hex: "#90ee90" },
+            { name: "lightgrey", hex: "#d3d3d3" },
+            { name: "lightpink", hex: "#ffb6c1" },
+            { name: "lightsalmon", hex: "#ffa07a" },
+            { name: "lightseagreen", hex: "#20b2aa" },
+            { name: "lightskyblue", hex: "#87cefa" },
+            { name: "lightslategray", hex: "#778899" },
+            { name: "lightslategrey", hex: "#778899" },
+            { name: "lightsteelblue", hex: "#b0c4de" },
+            { name: "lightyellow", hex: "#ffffe0" },
+            { name: "limegreen", hex: "#32cd32" },
+            { name: "linen", hex: "#faf0e6" },
+            { name: "magenta", hex: "#ff00ff" },
+            { name: "mediumaquamarine", hex: "#66cdaa" },
+            { name: "mediumblue", hex: "#0000cd" },
+            { name: "mediumorchid", hex: "#ba55d3" },
+            { name: "mediumpurple", hex: "#9370db" },
+            { name: "mediumseagreen", hex: "#3cb371" },
+            { name: "mediumslateblue", hex: "#7b68ee" },
+            { name: "mediumspringgreen", hex: "#00fa9a" },
+            { name: "mediumturquoise", hex: "#48d1cc" },
+            { name: "mediumvioletred", hex: "#c71585" },
+            { name: "midnightblue", hex: "#191970" },
+            { name: "mintcream", hex: "#f5fffa" },
+            { name: "mistyrose", hex: "#ffe4e1" },
+            { name: "moccasin", hex: "#ffe4b5" },
+            { name: "navajowhite", hex: "#ffdead" },
+            { name: "oldlace", hex: "#fdf5e6" },
+            { name: "olivedrab", hex: "#6b8e23" },
+            { name: "orangered", hex: "#ff4500" },
+            { name: "orchid", hex: "#da70d6" },
+            { name: "palegoldenrod", hex: "#eee8aa" },
+            { name: "palegreen", hex: "#98fb98" },
+            { name: "paleturquoise", hex: "#afeeee" },
+            { name: "palevioletred", hex: "#db7093" },
+            { name: "papayawhip", hex: "#ffefd5" },
+            { name: "peachpuff", hex: "#ffdab9" },
+            { name: "peru", hex: "#cd853f" },
+            { name: "pink", hex: "#ffc0cb" },
+            { name: "plum", hex: "#dda0dd" },
+            { name: "powderblue", hex: "#b0e0e6" },
+            { name: "rebeccapurple", hex: "#663399" },
+            { name: "rosybrown", hex: "#bc8f8f" },
+            { name: "royalblue", hex: "#4169e1" },
+            { name: "saddlebrown", hex: "#8b4513" },
+            { name: "salmon", hex: "#fa8072" },
+            { name: "sandybrown", hex: "#f4a460" },
+            { name: "seagreen", hex: "#2e8b57" },
+            { name: "seashell", hex: "#fff5ee" },
+            { name: "sienna", hex: "#a0522d" },
+            { name: "skyblue", hex: "#87ceeb" },
+            { name: "slateblue", hex: "#6a5acd" },
+            { name: "slategray", hex: "#708090" },
+            { name: "slategrey", hex: "#708090" },
+            { name: "snow", hex: "#fffafa" },
+            { name: "springgreen", hex: "#00ff7f" },
+            { name: "steelblue", hex: "#4682b4" },
+            { name: "tan", hex: "#d2b48c" },
+            { name: "thistle", hex: "#d8bfd8" },
+            { name: "tomato", hex: "#ff6347" },
+            { name: "turquoise", hex: "#40e0d0" },
+            { name: "violet", hex: "#ee82ee" },
+            { name: "wheat", hex: "#f5deb3" },
+            { name: "whitesmoke", hex: "#f5f5f5" },
+            { name: "yellowgreen", hex: "#9acd32" }
+        ];
+
+        // --- Game State Variables ---
+        let score = 0;
+        let guessesLeft = 20;
+        let bestScoreEasy = 0;
+        let bestScoreHard = 0;
+        let currentCorrectColor = null;
+        let gameMode = 'colorToName'; // 'colorToName' or 'nameToColor'
+        let processingAnswer = false;
+        let isHardMode = false;
+        const TOTAL_GUESSES = 20;
+ 
+        // --- DOM Elements ---
+        const startScreen = document.getElementById('start-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const endScreen = document.getElementById('end-screen');
+        
+        const startBtn = document.getElementById('start-btn');
+        const playAgainBtn = document.getElementById('play-again-btn');
+        
+        const scoreEl = document.getElementById('score');
+        const bestScoreEl = document.getElementById('best-score');
+        const startBestScoreEasyEl = document.getElementById('start-best-score-easy');
+        const startBestScoreHardEl = document.getElementById('start-best-score-hard');
+        const guessesLeftEl = document.getElementById('guesses-left');
+        
+        const questionTextEl = document.getElementById('question-text');
+        const colorDisplayEl = document.getElementById('color-display');
+        const optionsContainer = document.getElementById('options-container');
+        const feedbackEl = document.getElementById('feedback');
+        
+        const finalScoreEl = document.getElementById('final-score');
+        const rankEl = document.getElementById('rank');
+        const endBestScoreEasyEl = document.getElementById('end-best-score-easy');
+        const endBestScoreHardEl = document.getElementById('end-best-score-hard');
+        const newBestScoreText = document.getElementById('new-best-score-text');
+
+        // Help Modal Elements
+        const helpBtn = document.getElementById('help-btn');
+        const helpModal = document.getElementById('help-modal');
+        const closeHelpBtn = document.getElementById('close-help-btn');
+        const colorListContainer = document.getElementById('color-list-container');
+ 
+        // --- Utility Functions ---
+
+        /**
+         * Converts a camelCase or lowercase string to a "Friendly Title Case" string.
+         * e.g., "darkorange" -> "Dark Orange"
+         * e.g., "lightgoldenrodyellow" -> "Light Goldenrod Yellow"
+         */
+        function formatColorName(name) {
+            // Insert a space before any uppercase letter (e.g., "lightGoldenrodYellow" -> "light Goldenrod Yellow")
+            const spacedName = name.replace(/([A-Z])/g, ' $1');
+            // Capitalize the first letter of each word
+            return spacedName.replace(/\b(\w)/g, char => char.toUpperCase());
+        }
+ 
+        // Load best score from localStorage
+        function loadBestScore() {
+            bestScoreEasy = localStorage.getItem('colorGameBestScore_easy') || 0;
+            bestScoreHard = localStorage.getItem('colorGameBestScore_hard') || 0;
+            
+            // Update all score displays
+            startBestScoreEasyEl.textContent = bestScoreEasy;
+            startBestScoreHardEl.textContent = bestScoreHard;
+            endBestScoreEasyEl.textContent = bestScoreEasy;
+            endBestScoreHardEl.textContent = bestScoreHard;
+            
+            // Update in-game best score display (will be 0 if game not started, which is fine)
+            bestScoreEl.textContent = isHardMode ? bestScoreHard : bestScoreEasy;
+        }
+ 
+        // Save best score to localStorage
+        function saveBestScore() {
+            if (isHardMode) {
+                if (score > bestScoreHard) {
+                    bestScoreHard = score;
+                    localStorage.setItem('colorGameBestScore_hard', bestScoreHard);
+                    newBestScoreText.classList.remove('hidden');
+                }
+            } else {
+                if (score > bestScoreEasy) {
+                    bestScoreEasy = score;
+                    localStorage.setItem('colorGameBestScore_easy', bestScoreEasy);
+                    newBestScoreText.classList.remove('hidden');
+                }
+            }
+            // Re-load to ensure end-screen scores are correct
+            loadBestScore();
+        }
+ 
+        // Get a random element from an array
+        function getRandomElement(arr) {
+            return arr[Math.floor(Math.random() * arr.length)];
+        }
+
+        // Shuffle an array (Fisher-Yates)
+        function shuffleArray(arr) {
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+ 
+        // --- New Help Modal Functions ---
+        function populateColorList() {
+            const list = document.createElement('div');
+            // Changed to a single column layout
+            list.className = 'flex flex-col gap-2';
+            
+            // Sort colors by name for the reference list
+            const sortedColors = [...colors].sort((a, b) => a.name.localeCompare(b.name));
+
+            sortedColors.forEach(color => {
+                const item = document.createElement('div');
+                // Updated item classes for single column
+                item.className = 'flex items-center space-x-4 p-2 bg-gray-100 dark:bg-gray-700 rounded-md shadow-sm';
+                
+                const swatch = document.createElement('div');
+                swatch.className = 'w-10 h-10 rounded border border-gray-300 dark:border-gray-600 shrink-0';
+                swatch.style.backgroundColor = color.hex;
+                
+                const name = document.createElement('span');
+                name.className = 'text-sm font-medium';
+                // Use the new formatter
+                name.textContent = formatColorName(color.name);
+                
+                item.appendChild(swatch);
+                item.appendChild(name);
+                list.appendChild(item);
+            });
+            colorListContainer.innerHTML = ''; // Clear previous (if any)
+            colorListContainer.appendChild(list);
+        }
+
+        function showHelpModal() {
+            helpModal.classList.remove('hidden');
+        }
+
+        function hideHelpModal() {
+            helpModal.classList.add('hidden');
+        }
+
+        // --- Hard Mode Helper Functions ---
+
+        // Convert hex string to an RGB object
+        function hexToRgb(hex) {
+            // Ensure hex string is valid
+            if (!hex || hex.length !== 7 || hex[0] !== '#') {
+                console.error('Invalid hex color:', hex);
+                return { r: 0, g: 0, b: 0 }; // Return black as fallback
+            }
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
+            return { r, g, b };
+        }
+
+        // Calculate Euclidean distance between two color objects
+        function colorDistance(color1, color2) {
+            const rgb1 = hexToRgb(color1.hex);
+            const rgb2 = hexToRgb(color2.hex);
+            return Math.sqrt(
+                Math.pow(rgb2.r - rgb1.r, 2) +
+                Math.pow(rgb2.g - rgb1.g, 2) +
+                Math.pow(rgb2.b - rgb1.b, 2)
+            );
+        }
+
+        // Get the correct color + (num - 1) closest colors from the list
+        function getCloseColors(correctColor, num) {
+            // 1. Calculate distance from the correct color to all other colors.
+            // We filter by hex to avoid comparing a color to itself, 
+            // but duplicates (like 'gray' and 'grey') are allowed in the options.
+            const distances = colors
+                .filter(color => color.hex !== correctColor.hex) // Exclude exact hex matches
+                .map(color => ({
+                    color: color,
+                    distance: colorDistance(correctColor, color)
+                }));
+
+            // 2. Sort by distance (ascending).
+            distances.sort((a, b) => a.distance - b.distance);
+
+            // 3. Take the (num - 1) closest colors.
+            // We need to handle potential duplicates in the resulting list
+            const closestColors = [];
+            const addedNames = new Set([correctColor.name]);
+
+            for (const d of distances) {
+                if (closestColors.length >= num - 1) break;
+                // Only add if the name is not already in our list
+                if (!addedNames.has(d.color.name)) {
+                    closestColors.push(d.color);
+                    addedNames.add(d.color.name);
+                }
+            }
+            
+            // 4. If we still don't have enough (e.g., 'gray' and 'grey' were filtered),
+            //    fill with random colors that aren't the correct one.
+            while (closestColors.length < num - 1) {
+                const randomColor = getRandomElement(colors);
+                if (!addedNames.has(randomColor.name)) {
+                    closestColors.push(randomColor);
+                    addedNames.add(randomColor.name);
+                }
+            }
+
+
+            // 5. Return the correct color + the close ones.
+            return [correctColor, ...closestColors];
+        }
+ 
+        // --- Game Logic Functions ---
+ 
+        function startGame() {
+            score = 0;
+            guessesLeft = TOTAL_GUESSES;
+            scoreEl.textContent = score;
+            guessesLeftEl.textContent = guessesLeft;
+            newBestScoreText.classList.add('hidden');
+            
+            // Check if Hard Mode is enabled
+            isHardMode = document.getElementById('hard-mode-toggle').checked;
+            
+            startScreen.classList.add('hidden');
+            endScreen.classList.add('hidden');
+            gameScreen.classList.remove('hidden');
+            
+            loadBestScore(); // Load scores
+            bestScoreEl.textContent = isHardMode ? bestScoreHard : bestScoreEasy; // Set in-game best
+            nextRound();
+        }
+ 
+        function nextRound() { 
+            if (guessesLeft <= 0) { 
+                endGame();
+                return;
+            }
+
+            processingAnswer = false;
+            feedbackEl.textContent = '';
+            feedbackEl.classList.remove('text-green-500', 'text-red-500', 'feedback-pop');
+            optionsContainer.innerHTML = ''; // Clear old options
+ 
+            // 1. Get 4 unique colors (DIFFERENTLY based on mode)
+            let chosenColors;
+            let options;
+            
+            currentCorrectColor = getRandomElement(colors); // Pick the correct answer first
+
+            if (isHardMode) {
+                // Hard Mode: Get the 3 colors closest to the correct one
+                chosenColors = getCloseColors(currentCorrectColor, 4);
+            } else {
+                // Normal Mode: Pick 3 other random, unique *names*
+                const otherColors = new Set();
+                const addedNames = new Set([currentCorrectColor.name]);
+                
+                while (otherColors.size < 3) {
+                    const randomColor = getRandomElement(colors);
+                    if (!addedNames.has(randomColor.name)) {
+                        otherColors.add(randomColor);
+                        addedNames.add(randomColor.name);
+                    }
+                }
+                chosenColors = [currentCorrectColor, ...Array.from(otherColors)];
+            }
+            
+            options = shuffleArray(chosenColors);
+            
+            // 2. Randomly pick game mode
+            gameMode = Math.random() < 0.5 ? 'colorToName' : 'nameToColor';
+
+            if (gameMode === 'colorToName') {
+                // Mode 1: Show color, guess name
+                questionTextEl.textContent = 'What color is this?';
+                colorDisplayEl.style.backgroundColor = currentCorrectColor.hex;
+                // Check brightness for text color
+                const brightness = getBrightness(currentCorrectColor.hex);
+                colorDisplayEl.textContent = ''; // No text in swatch
+                colorDisplayEl.classList.remove('text-white', 'text-black'); // Clear old classes
+                colorDisplayEl.classList.add(brightness > 128 ? 'text-black' : 'text-white');
+
+                // Create name buttons
+                options.forEach(color => {
+                    const button = document.createElement('button');
+                    // Use the new formatter
+                    button.textContent = formatColorName(color.name);
+                    button.dataset.value = color.name; // Keep raw name in data-value
+                    button.className = "option-btn w-full h-20 md:h-24 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 font-semibold rounded-lg shadow-md transition-all duration-150 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base";
+                    button.onclick = () => checkAnswer(color.name);
+                    optionsContainer.appendChild(button);
+                });
+
+            } else {
+                // Mode 2: Show name, guess color
+                questionTextEl.textContent = 'Which color is...';
+                colorDisplayEl.style.backgroundColor = '';
+                // Use the new formatter
+                colorDisplayEl.textContent = formatColorName(currentCorrectColor.name);
+                colorDisplayEl.classList.remove('text-white', 'text-black');
+                colorDisplayEl.classList.add('text-gray-900', 'dark:text-gray-100');
+
+                // Create color swatch buttons
+                options.forEach(color => {
+                    const button = document.createElement('button');
+                    button.style.backgroundColor = color.hex;
+                    button.dataset.value = color.name; // Use name as value for comparison
+                    
+                    // Add text with good contrast for accessibility/clarity
+                    const brightness = getBrightness(color.hex);
+                    const textColorClass = brightness > 128 ? 'text-black' : 'text-white';
+                    button.innerHTML = `<span class="opacity-0 group-hover:opacity-100 ${textColorClass} color-btn-text font-semibold text-sm transition-opacity">?</span>`;
+                    
+                    button.className = `option-btn w-full h-20 md:h-24 font-semibold rounded-lg shadow-md transition-all duration-150 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 group flex items-center justify-center`;
+                    button.onclick = () => checkAnswer(color.name);
+                    optionsContainer.appendChild(button);
+                });
+            }
+        }
+        
+        // Helper to get brightness of a hex color (0-255)
+        function getBrightness(hex) {
+            // Ensure hex string is valid
+            if (!hex || hex.length !== 7 || hex[0] !== '#') {
+                console.warn('Invalid hex color for brightness:', hex);
+                return 0; // Default to dark
+            }
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
+            // Using standard luma formula
+            return (0.299 * r + 0.587 * g + 0.114 * b);
+        }
+
+        function checkAnswer(selectedValue) {
+            if (processingAnswer) return; // Prevent multiple clicks
+            processingAnswer = true;
+
+            // Correct value is *always* the name, to handle duplicates like gray/grey
+            const correctValue = currentCorrectColor.name;
+            const friendlyCorrectName = formatColorName(currentCorrectColor.name);
+            const friendlyPickedName = formatColorName(selectedValue);
+
+            if (selectedValue === correctValue) {
+                // Correct Answer
+                score++;
+                feedbackEl.textContent = 'Correct!';
+                feedbackEl.className = 'mt-6 text-center text-lg font-semibold h-8 text-green-500 dark:text-green-400 feedback-pop';
+            } else {
+                // Wrong Answer
+                if (gameMode === 'colorToName') {
+                    // Mode 1: Showed color, guessed name.
+                    // Feedback: Tell them the correct name.
+                    feedbackEl.textContent = `Wrong! The correct answer was ${friendlyCorrectName}`;
+                } else {
+                    // Mode 2: Showed name, guessed color.
+                    // Feedback: Tell them what they picked.
+                    // selectedValue is the name of the color they clicked.
+                    feedbackEl.textContent = `Wrong! You picked ${friendlyPickedName}`;
+                }
+                feedbackEl.className = 'mt-6 text-center text-lg font-semibold h-8 text-red-500 dark:text-red-400 feedback-pop';
+            }
+ 
+            // Update scores
+            scoreEl.textContent = score;
+            guessesLeft--;
+            guessesLeftEl.textContent = guessesLeft;
+
+            // Wait a moment, then go to the next round
+            setTimeout(nextRound, 1200);
+        }
+
+        function endGame() {
+            finalScoreEl.textContent = score;
+            rankEl.textContent = getRank(score);
+            saveBestScore(); // This also updates the 'end-best-score' text
+            
+            gameScreen.classList.add('hidden');
+            endScreen.classList.remove('hidden');
+        }
+
+        function getRank(score) {
+            if (score <= 5) return "Color Pleb";
+            if (score <= 10) return "Color Amateur";
+            if (score <= 15) return "Color Novice";
+            if (score <= 18) return "Color Connoisseur";
+            if (score <= 20) return "Color Lord";
+            return "Color Lord";
+        }
+
+        // --- Event Listeners ---
+        startBtn.addEventListener('click', startGame);
+        playAgainBtn.addEventListener('click', () => {
+            endScreen.classList.add('hidden');
+            startScreen.classList.remove('hidden');
+            loadBestScore(); // Update best score on start screen
+        });
+        
+        // Help Modal Listeners
+        helpBtn.addEventListener('click', showHelpModal);
+        closeHelpBtn.addEventListener('click', hideHelpModal);
+        // Also close modal if clicking on the background
+        helpModal.addEventListener('click', (e) => {
+            if (e.target === helpModal) {
+                hideHelpModal();
+            }
+        });
+
+        // --- Initial Load ---
+        loadBestScore();
+        populateColorList(); // Pre-populate the color list on load
+
+    </script>
+</body>
+</html>
