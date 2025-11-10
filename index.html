@@ -24,73 +24,73 @@
         .color-btn-text {
             text-shadow: 0 0 4px rgba(0, 0, 0, 0.5), 0 0 4px rgba(0, 0, 0, 0.5);
         }
-         /* Scrollbar styling for color list */
+         /* Scrollbar styling for color list - CHANGED to neutral */
         #color-list-container::-webkit-scrollbar {
             width: 8px;
         }
         #color-list-container::-webkit-scrollbar-track {
-            background: #f1f1f1;
+            background: #f5f5f5; /* neutral-100 */
             border-radius: 10px;
         }
         #color-list-container::-webkit-scrollbar-thumb {
-            background: #888;
+            background: #a3a3a3; /* neutral-400 */
             border-radius: 10px;
         }
         #color-list-container::-webkit-scrollbar-thumb:hover {
-            background: #555;
+            background: #737373; /* neutral-500 */
         }
-        /* Dark mode scrollbar */
+        /* Dark mode scrollbar - CHANGED to neutral */
         .dark #color-list-container::-webkit-scrollbar-track {
-            background: #4b5563;
+            background: #404040; /* neutral-700 */
         }
         .dark #color-list-container::-webkit-scrollbar-thumb {
-            background: #6b7280;
+            background: #737373; /* neutral-500 */
         }
         .dark #color-list-container::-webkit-scrollbar-thumb:hover {
-            background: #9ca3af;
+            background: #a3a3a3; /* neutral-400 */
         }
     </style>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen flex items-center justify-center p-4 transition-colors duration-300">
+<body class="bg-neutral-100 dark:bg-neutral-900 text-gray-900 dark:text-gray-100 min-h-screen flex items-center justify-center p-4 transition-colors duration-300">
 
     <div class="max-w-md w-full">
         <h1 class="text-3xl font-bold text-center mb-6">Color Guessing Game</h1>
 
-        <div id="start-screen" class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 text-center">
+        <div id="start-screen" class="bg-white dark:bg-neutral-800 rounded-lg shadow-xl p-8 text-center">
             <p class="text-lg mb-6">Guess the color from the name, or the name from the color. You have 20 rounds. Good luck!</p>
-            <button id="start-btn" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+            <button id="start-btn" class="w-full bg-neutral-600 hover:bg-neutral-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:ring-opacity-50">
                 Start Game
             </button>
             <div class="flex items-center justify-center my-6">
                 <label for="hard-mode-toggle" class="flex items-center cursor-pointer">
-                    <span class="mr-3 font-semibold text-gray-700 dark:text-gray-300">Hard Mode</span>
+                    <span class="mr-3 font-semibold text-neutral-700 dark:text-neutral-300">Hard Mode</span>
                     <div class="relative">
                         <input type="checkbox" id="hard-mode-toggle" class="sr-only peer">
-                        <div class="w-12 h-7 bg-gray-300 dark:bg-gray-600 rounded-full shadow-inner transition-colors peer-checked:bg-gray-500 dark:peer-checked:bg-gray-400"></div>
+                        <div class="w-12 h-7 bg-neutral-300 dark:bg-neutral-600 rounded-full shadow-inner transition-colors peer-checked:bg-neutral-500 dark:peer-checked:bg-neutral-400"></div>
                         <div class="absolute left-1 top-1 w-5 h-5 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5"></div>
                     </div>
                 </label>
             </div>
-            <button id="help-btn" class="mt-4 text-sm text-blue-600 dark:text-blue-400 hover:underline focus:outline-none">
+            <button id="help-btn" class="mt-4 text-sm text-neutral-600 dark:text-neutral-400 hover:underline focus:outline-none">
                 Show Color Reference
             </button>
-            <div class="mt-4 text-sm text-gray-600 dark:text-gray-400">
+            <div class="mt-4 text-sm text-neutral-600 dark:text-neutral-400">
                 <div>Best (Easy): <span id="start-best-score-easy">0</span></div>
                 <div>Best (Hard): <span id="start-best-score-hard">0</span></div>
             </div>
         </div>
  
         <div id="game-screen" class="hidden">
-            <div class="flex justify-between items-center mb-4 text-sm font-semibold bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4">
-                <div>Score: <span id="score" class="font-bold text-lg text-blue-600 dark:text-blue-400">0</span></div>
+            <div class="flex justify-between items-center mb-4 text-sm font-semibold bg-white dark:bg-neutral-800 rounded-lg shadow-lg p-4">
+                <div>Score: <span id="score" class="font-bold text-lg text-neutral-600 dark:text-neutral-400">0</span></div>
                 <div>Best: <span id="best-score" class="font-bold text-lg">0</span></div>
                 <div>Round: <span id="guesses-left" class="font-bold text-lg">20</span> / 20</div>
             </div>
 
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6">
+            <div class="bg-white dark:bg-neutral-800 rounded-lg shadow-xl p-6">
                 <h2 id="question-text" class="text-xl font-semibold text-center mb-4 h-12 flex items-center justify-center"></h2>
                 
-                <div id="color-display" class="w-full h-48 md:h-64 rounded-lg mb-6 shadow-inner bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-4xl font-bold text-center px-4" style="text-shadow: 0 0 8px rgba(0,0,0,0.3);">
+                <div id="color-display" class="w-full h-48 md:h-64 rounded-lg mb-6 shadow-inner bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center text-4xl font-bold text-center px-4" style="text-shadow: 0 0 8px rgba(0,0,0,0.3);">
                 </div>
 
                 <div id="options-container" class="grid grid-cols-2 gap-4">
@@ -100,8 +100,8 @@
             </div>
         </div>
 
-        <div id="end-screen" class="hidden absolute inset-0 bg-gray-900 bg-opacity-80 flex items-center justify-center p-4 z-40">
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl p-8 text-center w-full max-w-sm">
+        <div id="end-screen" class="hidden absolute inset-0 bg-neutral-900 bg-opacity-80 flex items-center justify-center p-4 z-40">
+            <div class="bg-white dark:bg-neutral-800 rounded-lg shadow-2xl p-8 text-center w-full max-w-sm">
                 <h2 class="text-3xl font-bold mb-4">Game Over!</h2>
                 <div id="new-best-score-text" class="text-2xl font-semibold text-yellow-500 mb-4 hidden">New Best Score!</div>
                 <div class="text-xl mb-2">Final Score: <span id="final-score" class="font-bold">0</span></div>
@@ -110,16 +110,16 @@
                     <div>Best (Easy): <span id="end-best-score-easy" class="font-bold">0</span></div>
                     <div>Best (Hard): <span id="end-best-score-hard" class="font-bold">0</span></div>
                 </div>
-                <button id="play-again-btn" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                <button id="play-again-btn" class="w-full bg-neutral-600 hover:bg-neutral-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:ring-opacity-50">
                     Play Again
                 </button>
             </div>
         </div>
 
-        <div id="help-modal" class="hidden absolute inset-0 bg-gray-900 bg-opacity-80 flex items-center justify-center p-4 z-50">
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl p-6 w-full max-w-md relative">
+        <div id="help-modal" class="hidden absolute inset-0 bg-neutral-900 bg-opacity-80 flex items-center justify-center p-4 z-50">
+            <div class="bg-white dark:bg-neutral-800 rounded-lg shadow-2xl p-6 w-full max-w-md relative">
                 <h2 class="text-2xl font-bold mb-4 text-center">Color Reference</h2>
-                <button id="close-help-btn" class="absolute top-3 right-4 text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 text-3xl font-bold leading-none" aria-label="Close">&times;</button>
+                <button id="close-help-btn" class="absolute top-3 right-4 text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 text-3xl font-bold leading-none" aria-label="Close">&times;</button>
                 
                 <div id="color-list-container" class="max-h-[60vh] overflow-y-auto pr-2">
                     </div>
@@ -169,8 +169,7 @@
             { name: "darkcyan", hex: "#008b8b" },
             { name: "darkgoldenrod", hex: "#b8860b" },
             { name: "darkgray", hex: "#a9a9a9" },
-            { name:CSS
-"darkgreen", hex: "#006400" },
+            { name: "darkgreen", hex: "#006400" },
             { name: "darkgrey", hex: "#a9a9a9" },
             { name: "darkkhaki", hex: "#bdb76b" },
             { name: "darkmagenta", hex: "#8b008b" },
@@ -396,11 +395,12 @@
 
             sortedColors.forEach(color => {
                 const item = document.createElement('div');
-                // Updated item classes for single column
-                item.className = 'flex items-center space-x-4 p-2 bg-gray-100 dark:bg-gray-700 rounded-md shadow-sm';
+                // Updated item classes for single column - CHANGED to neutral
+                item.className = 'flex items-center space-x-4 p-2 bg-neutral-100 dark:bg-neutral-700 rounded-md shadow-sm';
                 
                 const swatch = document.createElement('div');
-                swatch.className = 'w-10 h-10 rounded border border-gray-300 dark:border-gray-600 shrink-0';
+                // CHANGED to neutral border
+                swatch.className = 'w-10 h-10 rounded border border-neutral-300 dark:border-neutral-600 shrink-0';
                 swatch.style.backgroundColor = color.hex;
                 
                 const name = document.createElement('span');
@@ -571,7 +571,8 @@
                     // Use the new formatter
                     button.textContent = formatColorName(color.name);
                     button.dataset.value = color.name; // Keep raw name in data-value
-                    button.className = "option-btn w-full h-20 md:h-24 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 font-semibold rounded-lg shadow-md transition-all duration-150 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base";
+                    // CHANGED: bg-gray-200, dark:bg-gray-700, hover:bg-gray-300, dark:hover:bg-gray-600, focus:ring-blue-500 to neutral
+                    button.className = "option-btn w-full h-20 md:h-24 bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600 font-semibold rounded-lg shadow-md transition-all duration-150 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-neutral-500 text-sm md:text-base";
                     button.onclick = () => checkAnswer(color.name);
                     optionsContainer.appendChild(button);
                 });
@@ -583,7 +584,8 @@
                 // Use the new formatter
                 colorDisplayEl.textContent = formatColorName(currentCorrectColor.name);
                 colorDisplayEl.classList.remove('text-white', 'text-black');
-                colorDisplayEl.classList.add('text-gray-900', 'dark:text-gray-100');
+                // CHANGED: text-gray-900, dark:text-gray-100 to neutral
+                colorDisplayEl.classList.add('text-neutral-900', 'dark:text-neutral-100');
 
                 // Create color swatch buttons
                 options.forEach(color => {
@@ -596,7 +598,8 @@
                     const textColorClass = brightness > 128 ? 'text-black' : 'text-white';
                     button.innerHTML = `<span class="opacity-0 group-hover:opacity-100 ${textColorClass} color-btn-text font-semibold text-sm transition-opacity">?</span>`;
                     
-                    button.className = `option-btn w-full h-20 md:h-24 font-semibold rounded-lg shadow-md transition-all duration-150 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 group flex items-center justify-center`;
+                    // CHANGED: focus:ring-blue-500 to neutral
+                    button.className = `option-btn w-full h-20 md:h-24 font-semibold rounded-lg shadow-md transition-all duration-150 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-neutral-500 group flex items-center justify-center`;
                     button.onclick = () => checkAnswer(color.name);
                     optionsContainer.appendChild(button);
                 });
@@ -683,18 +686,4 @@
         
         // Help Modal Listeners
         helpBtn.addEventListener('click', showHelpModal);
-        closeHelpBtn.addEventListener('click', hideHelpModal);
-        // Also close modal if clicking on the background
-        helpModal.addEventListener('click', (e) => {
-            if (e.target === helpModal) {
-                hideHelpModal();
-            }
-        });
-
-        // --- Initial Load ---
-        loadBestScore();
-        populateColorList(); // Pre-populate the color list on load
-
-    </script>
-</body>
-</html>
+        closeHelpBtn.addEventListener('click', hideHelpModal
