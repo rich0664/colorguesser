@@ -75,11 +75,11 @@
             <div class="my-6 text-left">
                 <label for="library-select" class="block mb-2 font-semibold text-neutral-700 dark:text-neutral-300">Color Library</label>
                 <select id="library-select" class="w-full bg-neutral-100 dark:bg-neutral-700 border border-neutral-300 dark:border-neutral-600 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="w3.csv">W3 Colors (147)</option>
-                    <option value="hexa.csv">ColorHexa (746)</option>
-                    <option value="crayola.csv">Crayola (110)</option>
-                    <option value="xkcd.csv">XKCD (949)</option>
-                    <option value="xkcd_small.csv">XKCD Small (254)</option>
+                    <option value="w3.csv" data-basename="W3 Colors">W3 Colors</option>
+                    <option value="hexa.csv" data-basename="ColorHexa">ColorHexa</option>
+                    <option value="crayola.csv" data-basename="Crayola">Crayola</option>
+                    <option value="xkcd.csv" data-basename="XKCD">XKCD</option>
+                    <option value="xkcd_small.csv" data-basename="XKCD Small">XKCD Small</option>
                 </select>
             </div>
             <button id="help-btn" class="mt-4 text-sm text-blue-600 dark:text-blue-400 hover:underline focus:outline-none">
@@ -95,7 +95,7 @@
             <div class="flex justify-between items-center mb-4 text-sm font-semibold bg-white dark:bg-neutral-800 rounded-lg shadow-lg p-4">
                 <div>Score: <span id="score" class="font-bold text-lg text-blue-600 dark:text-blue-400">0</span></div>
                 <div>Best: <span id="best-score" class="font-bold text-lg">0</span></div>
-                <div>Round: <span id="guesses-left" class="font-bold text-lg">20</span> / 20</div>
+                <div>Round: <span id="current-round" class="font-bold text-lg">1</span> / <span id="total-rounds" class="font-bold text-lg">20</span></div>
             </div>
 
             <div class="bg-white dark:bg-neutral-800 rounded-lg shadow-xl p-6">
@@ -144,14 +144,14 @@
         // --- Game State Variables ---
         let currentColorLibrary = []; // This will hold the loaded colors
         let score = 0;
-        let guessesLeft = 20;
+        let currentRound = 0;
         let bestScoreEasy = 0;
         let bestScoreHard = 0;
         let currentCorrectColor = null;
         let gameMode = 'colorToName'; // 'colorToName' or 'nameToColor'
         let processingAnswer = false;
         let isHardMode = false;
-        const TOTAL_GUESSES = 20;
+        const TOTAL_ROUNDS = 20;
  
         // --- DOM Elements ---
         const startScreen = document.getElementById('start-screen');
@@ -165,7 +165,9 @@
         const bestScoreEl = document.getElementById('best-score');
         const startBestScoreEasyEl = document.getElementById('start-best-score-easy');
         const startBestScoreHardEl = document.getElementById('start-best-score-hard');
-        const guessesLeftEl = document.getElementById('guesses-left');
+        
+        const currentRoundEl = document.getElementById('current-round');
+        const totalRoundsEl = document.getElementById('total-rounds');
         
         const questionTextEl = document.getElementById('question-text');
         const colorDisplayEl = document.getElementById('color-display');
@@ -184,7 +186,6 @@
         const closeHelpBtn = document.getElementById('close-help-btn');
         const colorListContainer = document.getElementById('color-list-container');
         
-        // NEW: Library Selector
         const librarySelect = document.getElementById('library-select');
  
         // --- NEW: CSV Loading Functions ---
@@ -206,6 +207,13 @@
                 // Update help modal as requested
                 populateColorList();
                 
+                // Update dropdown count
+                const selectedOption = librarySelect.querySelector(`option[value="${filename}"]`);
+                if (selectedOption) {
+                    const baseText = selectedOption.dataset.basename;
+                    selectedOption.text = `${baseText} (${colors.length})`;
+                }
+
                 console.log(`Loaded ${colors.length} colors from ${filename}`);
             } catch (error) {
                 console.error("Error loading color library:", error);
@@ -262,10 +270,20 @@
             return spacedName.replace(/\b(\w)/g, char => char.toUpperCase());
         }
  
-        // Load best score from localStorage
+        // === NEW: Get dynamic score key ===
+        function getScoreKey(isHard) {
+            const filename = librarySelect.value; // Get current CSV
+            const mode = isHard ? 'hard' : 'easy';
+            return `colorGameBestScore_${mode}_${filename}`;
+        }
+ 
+        // UPDATED: Load best score from localStorage
         function loadBestScore() {
-            bestScoreEasy = localStorage.getItem('colorGameBestScore_easy') || 0;
-            bestScoreHard = localStorage.getItem('colorGameBestScore_hard') || 0;
+            const easyKey = getScoreKey(false);
+            const hardKey = getScoreKey(true);
+            
+            bestScoreEasy = localStorage.getItem(easyKey) || 0;
+            bestScoreHard = localStorage.getItem(hardKey) || 0;
             
             // Update all score displays
             startBestScoreEasyEl.textContent = bestScoreEasy;
@@ -273,22 +291,22 @@
             endBestScoreEasyEl.textContent = bestScoreEasy;
             endBestScoreHardEl.textContent = bestScoreHard;
             
-            // Update in-game best score display (will be 0 if game not started, which is fine)
+            // Update in-game best score display
             bestScoreEl.textContent = isHardMode ? bestScoreHard : bestScoreEasy;
         }
  
-        // Save best score to localStorage
+        // UPDATED: Save best score to localStorage
         function saveBestScore() {
             if (isHardMode) {
                 if (score > bestScoreHard) {
                     bestScoreHard = score;
-                    localStorage.setItem('colorGameBestScore_hard', bestScoreHard);
+                    localStorage.setItem(getScoreKey(true), bestScoreHard);
                     newBestScoreText.classList.remove('hidden');
                 }
             } else {
                 if (score > bestScoreEasy) {
                     bestScoreEasy = score;
-                    localStorage.setItem('colorGameBestScore_easy', bestScoreEasy);
+                    localStorage.setItem(getScoreKey(false), bestScoreEasy);
                     newBestScoreText.classList.remove('hidden');
                 }
             }
@@ -313,16 +331,12 @@
         // --- New Help Modal Functions ---
         function populateColorList() {
             const list = document.createElement('div');
-            // Changed to a single column layout
             list.className = 'flex flex-col gap-2';
             
-            // Sort colors by name for the reference list
-            // *** UPDATED: Now uses currentColorLibrary ***
             const sortedColors = [...currentColorLibrary].sort((a, b) => a.name.localeCompare(b.name));
 
             sortedColors.forEach(color => {
                 const item = document.createElement('div');
-                // Updated item classes for single column
                 item.className = 'flex items-center space-x-4 p-2 bg-neutral-100 dark:bg-neutral-700 rounded-md shadow-sm';
                 
                 const swatch = document.createElement('div');
@@ -331,8 +345,7 @@
                 
                 const name = document.createElement('span');
                 name.className = 'text-sm font-medium';
-                // Use the new formatter
-                name.textContent = color.name;
+                name.textContent = formatColorName(color.name);
                 
                 item.appendChild(swatch);
                 item.appendChild(name);
@@ -354,10 +367,9 @@
 
         // Convert hex string to an RGB object
         function hexToRgb(hex) {
-            // Ensure hex string is valid
             if (!hex || hex.length !== 7 || hex[0] !== '#') {
                 console.error('Invalid hex color:', hex);
-                return { r: 0, g: 0, b: 0 }; // Return black as fallback
+                return { r: 0, g: 0, b: 0 };
             }
             const r = parseInt(hex.slice(1, 3), 16);
             const g = parseInt(hex.slice(3, 5), 16);
@@ -378,47 +390,33 @@
 
         // Get the correct color + (num - 1) closest colors from the list
         function getCloseColors(correctColor, num) {
-            // 1. Calculate distance from the correct color to all other colors.
-            // We filter by hex to avoid comparing a color to itself, 
-            // but duplicates (like 'gray' and 'grey') are allowed in the options.
-            // *** UPDATED: Now uses currentColorLibrary ***
             const distances = currentColorLibrary
-                .filter(color => color.hex !== correctColor.hex) // Exclude exact hex matches
+                .filter(color => color.hex !== correctColor.hex) 
                 .map(color => ({
                     color: color,
                     distance: colorDistance(correctColor, color)
                 }));
 
-            // 2. Sort by distance (ascending).
             distances.sort((a, b) => a.distance - b.distance);
 
-            // 3. Take the (num - 1) closest colors.
-            // We need to handle potential duplicates in the resulting list
             const closestColors = [];
             const addedNames = new Set([correctColor.name]);
 
             for (const d of distances) {
                 if (closestColors.length >= num - 1) break;
-                // Only add if the name is not already in our list
                 if (!addedNames.has(d.color.name)) {
                     closestColors.push(d.color);
                     addedNames.add(d.color.name);
                 }
             }
             
-            // 4. If we still don't have enough (e.g., 'gray' and 'grey' were filtered),
-            //    fill with random colors that aren't the correct one.
             while (closestColors.length < num - 1) {
-                // *** UPDATED: Now uses currentColorLibrary ***
                 const randomColor = getRandomElement(currentColorLibrary);
                 if (!addedNames.has(randomColor.name)) {
                     closestColors.push(randomColor);
                     addedNames.add(randomColor.name);
                 }
             }
-
-
-            // 5. Return the correct color + the close ones.
             return [correctColor, ...closestColors];
         }
  
@@ -426,30 +424,31 @@
  
         function startGame() {
             score = 0;
-            guessesLeft = TOTAL_GUESSES;
+            currentRound = 0;
             scoreEl.textContent = score;
-            guessesLeftEl.textContent = guessesLeft;
             newBestScoreText.classList.add('hidden');
             
-            // Check if Hard Mode is enabled
             isHardMode = document.getElementById('hard-mode-toggle').checked;
             
             startScreen.classList.add('hidden');
             endScreen.classList.add('hidden');
             gameScreen.classList.remove('hidden');
             
-            loadBestScore(); // Load scores
-            bestScoreEl.textContent = isHardMode ? bestScoreHard : bestScoreEasy; // Set in-game best
+            loadBestScore(); // Load scores for the selected library
+            bestScoreEl.textContent = isHardMode ? bestScoreHard : bestScoreEasy;
+            
+            totalRoundsEl.textContent = TOTAL_ROUNDS;
             nextRound();
         }
  
         function nextRound() { 
-            if (guessesLeft <= 0) { 
+            currentRound++;
+            if (currentRound > TOTAL_ROUNDS) { 
                 endGame();
                 return;
             }
+            currentRoundEl.textContent = currentRound;
 
-            // Check if library is too small for 4 options
             if (currentColorLibrary.length < 4) {
                 alert("The selected color library is too small to play (requires at least 4 unique colors). Please select a different library.");
                 gameScreen.classList.add('hidden');
@@ -460,25 +459,20 @@
             processingAnswer = false;
             feedbackEl.textContent = '';
             feedbackEl.classList.remove('text-green-500', 'text-red-500', 'feedback-pop');
-            optionsContainer.innerHTML = ''; // Clear old options
+            optionsContainer.innerHTML = ''; 
  
-            // 1. Get 4 unique colors (DIFFERENTLY based on mode)
             let chosenColors;
             let options;
             
-            // *** UPDATED: Now uses currentColorLibrary ***
-            currentCorrectColor = getRandomElement(currentColorLibrary); // Pick the correct answer first
+            currentCorrectColor = getRandomElement(currentColorLibrary);
 
             if (isHardMode) {
-                // Hard Mode: Get the 3 colors closest to the correct one
                 chosenColors = getCloseColors(currentCorrectColor, 4);
             } else {
-                // Normal Mode: Pick 3 other random, unique *names*
                 const otherColors = new Set();
                 const addedNames = new Set([currentCorrectColor.name]);
                 
                 while (otherColors.size < 3) {
-                    // *** UPDATED: Now uses currentColorLibrary ***
                     const randomColor = getRandomElement(currentColorLibrary);
                     if (!addedNames.has(randomColor.name)) {
                         otherColors.add(randomColor);
@@ -490,46 +484,37 @@
             
             options = shuffleArray(chosenColors);
             
-            // 2. Randomly pick game mode
             gameMode = Math.random() < 0.5 ? 'colorToName' : 'nameToColor';
 
             if (gameMode === 'colorToName') {
-                // Mode 1: Show color, guess name
                 questionTextEl.textContent = 'What color is this?';
                 colorDisplayEl.style.backgroundColor = currentCorrectColor.hex;
-                // Check brightness for text color
                 const brightness = getBrightness(currentCorrectColor.hex);
-                colorDisplayEl.textContent = ''; // No text in swatch
-                colorDisplayEl.classList.remove('text-white', 'text-black'); // Clear old classes
+                colorDisplayEl.textContent = '';
+                colorDisplayEl.classList.remove('text-white', 'text-black');
                 colorDisplayEl.classList.add(brightness > 128 ? 'text-black' : 'text-white');
 
-                // Create name buttons
                 options.forEach(color => {
                     const button = document.createElement('button');
-                    // Use the new formatter
                     button.textContent = formatColorName(color.name);
-                    button.dataset.value = color.name; // Keep raw name in data-value
+                    button.dataset.value = color.name;
                     button.className = "option-btn w-full h-20 md:h-24 bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600 font-semibold rounded-lg shadow-md transition-all duration-150 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base";
                     button.onclick = () => checkAnswer(color.name);
                     optionsContainer.appendChild(button);
                 });
 
             } else {
-                // Mode 2: Show name, guess color
                 questionTextEl.textContent = 'Which color is...';
                 colorDisplayEl.style.backgroundColor = '';
-                // Use the new formatter
                 colorDisplayEl.textContent = formatColorName(currentCorrectColor.name);
                 colorDisplayEl.classList.remove('text-white', 'text-black');
                 colorDisplayEl.classList.add('text-neutral-900', 'dark:text-neutral-100');
 
-                // Create color swatch buttons
                 options.forEach(color => {
                     const button = document.createElement('button');
                     button.style.backgroundColor = color.hex;
-                    button.dataset.value = color.name; // Use name as value for comparison
+                    button.dataset.value = color.name;
                     
-                    // Add text with good contrast for accessibility/clarity
                     const brightness = getBrightness(color.hex);
                     const textColorClass = brightness > 128 ? 'text-black' : 'text-white';
                     button.innerHTML = `<span class="opacity-0 group-hover:opacity-100 ${textColorClass} color-btn-text font-semibold text-sm transition-opacity">?</span>`;
@@ -541,55 +526,40 @@
             }
         }
         
-        // Helper to get brightness of a hex color (0-255)
         function getBrightness(hex) {
-            // Ensure hex string is valid
             if (!hex || hex.length !== 7 || hex[0] !== '#') {
                 console.warn('Invalid hex color for brightness:', hex);
-                return 0; // Default to dark
+                return 0;
             }
             const r = parseInt(hex.slice(1, 3), 16);
             const g = parseInt(hex.slice(3, 5), 16);
             const b = parseInt(hex.slice(5, 7), 16);
-            // Using standard luma formula
             return (0.299 * r + 0.587 * g + 0.114 * b);
         }
 
         function checkAnswer(selectedValue) {
-            if (processingAnswer) return; // Prevent multiple clicks
+            if (processingAnswer) return;
             processingAnswer = true;
 
-            // Correct value is *always* the name, to handle duplicates like gray/grey
             const correctValue = currentCorrectColor.name;
             const friendlyCorrectName = formatColorName(currentCorrectColor.name);
             const friendlyPickedName = formatColorName(selectedValue);
 
             if (selectedValue === correctValue) {
-                // Correct Answer
                 score++;
                 feedbackEl.textContent = 'Correct!';
                 feedbackEl.className = 'mt-6 text-center text-lg font-semibold h-8 text-green-500 dark:text-green-400 feedback-pop';
             } else {
-                // Wrong Answer
                 if (gameMode === 'colorToName') {
-                    // Mode 1: Showed color, guessed name.
-                    // Feedback: Tell them the correct name.
                     feedbackEl.textContent = `Wrong! The correct answer was ${friendlyCorrectName}`;
                 } else {
-                    // Mode 2: Showed name, guessed color.
-                    // Feedback: Tell them what they picked.
-                    // selectedValue is the name of the color they clicked.
                     feedbackEl.textContent = `Wrong! You picked ${friendlyPickedName}`;
                 }
                 feedbackEl.className = 'mt-6 text-center text-lg font-semibold h-8 text-red-500 dark:text-red-400 feedback-pop';
             }
  
-            // Update scores
             scoreEl.textContent = score;
-            guessesLeft--;
-            guessesLeftEl.textContent = guessesLeft;
 
-            // Wait a moment, then go to the next round
             setTimeout(nextRound, 1200);
         }
 
@@ -603,12 +573,13 @@
         }
 
         function getRank(score) {
-            if (score <= 5) return "Color Pleb";
-            if (score <= 10) return "Color Noob";
-            if (score <= 15) return "Color Middle Manager";
-            if (score <= 18) return "Color Connoisseur";
-            if (score <= 20) return "Color Lord";
-            return "Color Lord";
+            const percentage = score / TOTAL_ROUNDS;
+            if (percentage <= 0.25) return "Color Pleb";
+            if (percentage <= 0.5) return "Color Noob";
+            if (percentage <= 0.75) return "Color Middle Manager";
+            if (percentage <= 0.9) return "Color Connoisseur";
+            if (percentage === 1) return "Color Lord";
+            return "Color Connoisseur"; // Default for scores like 19/20
         }
 
         // --- Event Listeners ---
@@ -619,41 +590,84 @@
             loadBestScore(); // Update best score on start screen
         });
         
-        // Help Modal Listeners
         helpBtn.addEventListener('click', showHelpModal);
         closeHelpBtn.addEventListener('click', hideHelpModal);
-        // Also close modal if clicking on the background
         helpModal.addEventListener('click', (e) => {
             if (e.target === helpModal) {
                 hideHelpModal();
             }
         });
 
-        // NEW: Library Select Listener
+        // UPDATED: Library Select Listener
         librarySelect.addEventListener('change', async (e) => {
             const selectedFile = e.target.value;
-            // Show a simple loading state in the help button?
             helpBtn.textContent = "Loading Library...";
+            // We only need to call loadColorLibrary, which will fetch
+            // and update the single library.
             await loadColorLibrary(selectedFile);
+            
+            // Load scores for the new library
+            loadBestScore();
+            
             helpBtn.textContent = "Show Color Reference";
         });
 
         // --- Initial Load ---
+        
+        // === UPDATED: initializeGame function ===
         /**
-         * Initializes the game by loading the default color library
-         * and the user's best scores.
+         * Initializes the game by loading counts for ALL libraries
+         * and pre-loading the default library data.
          */
         async function initializeGame() {
-            // Get the default selected library from the dropdown
+            totalRoundsEl.textContent = TOTAL_ROUNDS; // Set total on load
+            
+            const optionsToLoad = Array.from(librarySelect.options);
             const defaultLibraryFile = librarySelect.value;
-            await loadColorLibrary(defaultLibraryFile);
+            let defaultLibraryData = null; // To store the pre-fetched default data
+
+            // 1. Create a list of promises to fetch/parse ALL libraries
+            const loadPromises = optionsToLoad.map(async (option) => {
+                const filename = option.value;
+                const baseText = option.dataset.basename;
+                
+                try {
+                    const response = await fetch(filename);
+                    if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+                    const csvText = await response.text();
+                    const colors = parseCSV(csvText);
+                    
+                    // Update option text
+                    option.text = `${baseText} (${colors.length})`;
+                    
+                    // If this is the default one, save its data so we don't re-fetch
+                    if (filename === defaultLibraryFile) {
+                        defaultLibraryData = colors;
+                    }
+                } catch (e) {
+                    console.error(`Failed to load count for ${filename}`, e);
+                    option.text = `${baseText} (Error)`;
+                }
+            });
+
+            // 2. Wait for all of them to finish
+            await Promise.all(loadPromises);
+
+            // 3. Set the initial game state with the pre-fetched default data
+            if (defaultLibraryData) {
+                currentColorLibrary = defaultLibraryData;
+                populateColorList();
+            } else {
+                // 4. Fallback: If the default failed, run loadColorLibrary
+                // which has its own error handling and fallback.
+                console.error("Default library failed to load, running fallback.");
+                await loadColorLibrary(defaultLibraryFile);
+            }
             
-            // Now load scores
+            // 5. Load the score for the default library
             loadBestScore();
-            
-            // populateColorList() is already called by loadColorLibrary(),
-            // so the help modal is ready.
         }
+        // === END UPDATE ===
 
         // Start the game initialization
         initializeGame();
