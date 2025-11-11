@@ -140,21 +140,21 @@
     </div>
 
     <script>
-        // --- DATA: Now loaded from CSV ---
         
-        // --- Game State Variables ---
-        let currentColorLibrary = []; // This will hold the loaded colors
+        
+        
+        let currentColorLibrary = []; 
         let score = 0;
         let currentRound = 0;
         let bestScoreEasy = 0;
         let bestScoreHard = 0;
         let currentCorrectColor = null;
-        let gameMode = 'colorToName'; // 'colorToName' or 'nameToColor'
+        let gameMode = 'colorToName'; 
         let processingAnswer = false;
         let isHardMode = false;
         const TOTAL_ROUNDS = 20;
  
-        // --- DOM Elements ---
+        
         const startScreen = document.getElementById('start-screen');
         const gameScreen = document.getElementById('game-screen');
         const endScreen = document.getElementById('end-screen');
@@ -181,7 +181,7 @@
         const endBestScoreHardEl = document.getElementById('end-best-score-hard');
         const newBestScoreText = document.getElementById('new-best-score-text');
 
-        // Help Modal Elements
+        
         const helpBtn = document.getElementById('help-btn');
         const helpModal = document.getElementById('help-modal');
         const closeHelpBtn = document.getElementById('close-help-btn');
@@ -189,12 +189,9 @@
         
         const librarySelect = document.getElementById('library-select');
  
-        // --- NEW: CSV Loading Functions ---
         
-        /**
-         * Fetches a CSV file and loads it into the game state.
-         * @param {string} filename The path to the .csv file.
-         */
+        
+
         async function loadColorLibrary(filename) {
             try {
                 const response = await fetch(filename);
@@ -203,12 +200,12 @@
                 }
                 const csvText = await response.text();
                 const colors = parseCSV(csvText);
-                currentColorLibrary = colors; // Update the global state
+                currentColorLibrary = colors; 
                 
-                // Update help modal as requested
+                
                 populateColorList();
                 
-                // Update dropdown count
+                
                 const selectedOption = librarySelect.querySelector(`option[value="${filename}"]`);
                 if (selectedOption) {
                     const baseText = selectedOption.dataset.basename;
@@ -219,7 +216,7 @@
             } catch (error) {
                 console.error("Error loading color library:", error);
                 alert(`Could not load color library '${filename}'. Please check the file and try again. Using a fallback list.`);
-                // Fallback to a minimal list so the game doesn't break
+                
                 currentColorLibrary = [
                     { name: "red", hex: "#ff0000" }, 
                     { name: "green", hex: "#008000" }, 
@@ -229,24 +226,20 @@
             }
         }
 
-        /**
-         * Parses CSV text into an array of color objects.
-         * Assumes "name,hex" header.
-         * @param {string} text The raw CSV text.
-         */
+
         function parseCSV(text) {
             const lines = text.split('\n');
             const colors = [];
-            // Start from 1 to skip header row
+            
             for (let i = 1; i < lines.length; i++) {
                 const line = lines[i].trim();
-                if (!line) continue; // Skip empty lines
+                if (!line) continue; 
                 
                 const parts = line.split(',');
                 if (parts.length >= 2) {
                     const name = parts[0].trim();
                     const hex = parts[1].trim();
-                    // Basic validation
+                    
                     if (name && hex.startsWith('#')) {
                         colors.push({ name, hex });
                     } else {
@@ -257,28 +250,23 @@
             return colors;
         }
 
-        // --- Utility Functions ---
+        
 
-        /**
-         * Converts a camelCase or lowercase string to a "Friendly Title Case" string.
-         * e.g., "darkorange" -> "Dark Orange"
-         * e.g., "lightgoldenrodyellow" -> "Light Goldenrod Yellow"
-         */
         function formatColorName(name) {
-            // Insert a space before any uppercase letter (e.g., "lightGoldenrodYellow" -> "light Goldenrod Yellow")
+            
             const spacedName = name.replace(/([A-Z])/g, ' $1');
-            // Capitalize the first letter of each word
+            
             return spacedName.replace(/\b(\w)/g, char => char.toUpperCase());
         }
  
-        // === NEW: Get dynamic score key ===
+        
         function getScoreKey(isHard) {
-            const filename = librarySelect.value; // Get current CSV
+            const filename = librarySelect.value; 
             const mode = isHard ? 'hard' : 'easy';
             return `colorGameBestScore_${mode}_${filename}`;
         }
  
-        // UPDATED: Load best score from localStorage
+        
         function loadBestScore() {
             const easyKey = getScoreKey(false);
             const hardKey = getScoreKey(true);
@@ -286,17 +274,17 @@
             bestScoreEasy = localStorage.getItem(easyKey) || 0;
             bestScoreHard = localStorage.getItem(hardKey) || 0;
             
-            // Update all score displays
+            
             startBestScoreEasyEl.textContent = bestScoreEasy;
             startBestScoreHardEl.textContent = bestScoreHard;
             endBestScoreEasyEl.textContent = bestScoreEasy;
             endBestScoreHardEl.textContent = bestScoreHard;
             
-            // Update in-game best score display
+            
             bestScoreEl.textContent = isHardMode ? bestScoreHard : bestScoreEasy;
         }
  
-        // UPDATED: Save best score to localStorage
+        
         function saveBestScore() {
             if (isHardMode) {
                 if (score > bestScoreHard) {
@@ -311,16 +299,16 @@
                     newBestScoreText.classList.remove('hidden');
                 }
             }
-            // Re-load to ensure end-screen scores are correct
+            
             loadBestScore();
         }
  
-        // Get a random element from an array
+        
         function getRandomElement(arr) {
             return arr[Math.floor(Math.random() * arr.length)];
         }
 
-        // Shuffle an array (Fisher-Yates)
+        
         function shuffleArray(arr) {
             for (let i = arr.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -329,7 +317,7 @@
             return arr;
         }
  
-        // --- New Help Modal Functions ---
+        
         function populateColorList() {
             const list = document.createElement('div');
             list.className = 'flex flex-col gap-2';
@@ -352,7 +340,7 @@
                 item.appendChild(name);
                 list.appendChild(item);
             });
-            colorListContainer.innerHTML = ''; // Clear previous (if any)
+            colorListContainer.innerHTML = ''; 
             colorListContainer.appendChild(list);
         }
 
@@ -364,9 +352,9 @@
             helpModal.classList.add('hidden');
         }
 
-        // --- Hard Mode Helper Functions ---
+        
 
-        // Convert hex string to an RGB object
+        
         function hexToRgb(hex) {
             if (!hex || hex.length !== 7 || hex[0] !== '#') {
                 console.error('Invalid hex color:', hex);
@@ -378,7 +366,7 @@
             return { r, g, b };
         }
 
-        // Calculate Euclidean distance between two color objects
+        
         function colorDistance(color1, color2) {
             const rgb1 = hexToRgb(color1.hex);
             const rgb2 = hexToRgb(color2.hex);
@@ -389,7 +377,7 @@
             );
         }
 
-        // Get the correct color + (num - 1) closest colors from the list
+        
         function getCloseColors(correctColor, num) {
             const distances = currentColorLibrary
                 .filter(color => color.hex !== correctColor.hex) 
@@ -421,7 +409,7 @@
             return [correctColor, ...closestColors];
         }
  
-        // --- Game Logic Functions ---
+        
  
         function startGame() {
             score = 0;
@@ -435,7 +423,7 @@
             endScreen.classList.add('hidden');
             gameScreen.classList.remove('hidden');
             
-            loadBestScore(); // Load scores for the selected library
+            loadBestScore(); 
             bestScoreEl.textContent = isHardMode ? bestScoreHard : bestScoreEasy;
             
             totalRoundsEl.textContent = TOTAL_ROUNDS;
@@ -567,7 +555,7 @@
         function endGame() {
             finalScoreEl.textContent = score;
             rankEl.textContent = getRank(score);
-            saveBestScore(); // This also updates the 'end-best-score' text
+            saveBestScore(); 
             
             gameScreen.classList.add('hidden');
             endScreen.classList.remove('hidden');
@@ -580,15 +568,15 @@
             if (percentage <= 0.75) return "Color Middle Manager";
             if (percentage <= 0.9) return "Color Connoisseur";
             if (percentage === 1) return "Color Lord";
-            return "Color Connoisseur"; // Default for scores like 19/20
+            return "Color Connoisseur"; 
         }
 
-        // --- Event Listeners ---
+        
         startBtn.addEventListener('click', startGame);
         playAgainBtn.addEventListener('click', () => {
             endScreen.classList.add('hidden');
             startScreen.classList.remove('hidden');
-            loadBestScore(); // Update best score on start screen
+            loadBestScore(); 
         });
         
         helpBtn.addEventListener('click', showHelpModal);
@@ -599,35 +587,31 @@
             }
         });
 
-        // UPDATED: Library Select Listener
+        
         librarySelect.addEventListener('change', async (e) => {
             const selectedFile = e.target.value;
             helpBtn.textContent = "Loading Library...";
-            // We only need to call loadColorLibrary, which will fetch
-            // and update the single library.
+            
+            
             await loadColorLibrary(selectedFile);
             
-            // Load scores for the new library
+            
             loadBestScore();
             
             helpBtn.textContent = "Show Color Reference";
         });
 
-        // --- Initial Load ---
         
-        // === UPDATED: initializeGame function ===
-        /**
-         * Initializes the game by loading counts for ALL libraries
-         * and pre-loading the default library data.
-         */
+        
+    
         async function initializeGame() {
-            totalRoundsEl.textContent = TOTAL_ROUNDS; // Set total on load
+            totalRoundsEl.textContent = TOTAL_ROUNDS; 
             
             const optionsToLoad = Array.from(librarySelect.options);
             const defaultLibraryFile = librarySelect.value;
-            let defaultLibraryData = null; // To store the pre-fetched default data
+            let defaultLibraryData = null; 
 
-            // 1. Create a list of promises to fetch/parse ALL libraries
+            
             const loadPromises = optionsToLoad.map(async (option) => {
                 const filename = option.value;
                 const baseText = option.dataset.basename;
@@ -638,10 +622,10 @@
                     const csvText = await response.text();
                     const colors = parseCSV(csvText);
                     
-                    // Update option text
+                    
                     option.text = `${baseText} (${colors.length})`;
                     
-                    // If this is the default one, save its data so we don't re-fetch
+                    
                     if (filename === defaultLibraryFile) {
                         defaultLibraryData = colors;
                     }
@@ -651,26 +635,26 @@
                 }
             });
 
-            // 2. Wait for all of them to finish
+            
             await Promise.all(loadPromises);
 
-            // 3. Set the initial game state with the pre-fetched default data
+            
             if (defaultLibraryData) {
                 currentColorLibrary = defaultLibraryData;
                 populateColorList();
             } else {
-                // 4. Fallback: If the default failed, run loadColorLibrary
-                // which has its own error handling and fallback.
+                
+                
                 console.error("Default library failed to load, running fallback.");
                 await loadColorLibrary(defaultLibraryFile);
             }
             
-            // 5. Load the score for the default library
+            
             loadBestScore();
         }
-        // === END UPDATE ===
+        
 
-        // Start the game initialization
+        
         initializeGame();
 
     </script>
