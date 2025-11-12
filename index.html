@@ -7,7 +7,21 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
+        /* --- NEW: CSS Variables --- */
+        :root {
+            /* Set the tile size in rem, so it scales with browser zoom */
+            --tile-size: 19.5rem;
+            /* Set the buffer size (in tiles) for seamless scrolling */
+            --scroll-buffer-tiles: 10;
+            /* Calculate the pixel distance for the CSS animation */
+            --scroll-distance: calc(var(--tile-size) * var(--scroll-buffer-tiles) * -1);
+        }
+        /* --- END NEW --- */
+
         /* Apply Inter font */
+        h1{
+            text-shadow: 0 0 12px black;
+        }
         body {
             font-family: 'Inter', sans-serif;
         }
@@ -49,14 +63,76 @@
         .dark #color-list-container::-webkit-scrollbar-thumb:hover {
             background: #a3a3a3; /* neutral-400 */
         }
+
+        /* --- NEW: Background Grid Styles --- */
+        #background-grid-container {
+            position: fixed;
+            inset: 0;
+            z-index: -10; /* Place it behind all content */
+            overflow: hidden;
+            background-color: #333333; /* Fallback for when grid is loading */
+            
+        }
+
+        #background-grid-scroller {
+            position: relative;
+            display: grid;
+            transition: opacity 0.5s ease-out;
+            /* The animation will be set by JavaScript */
+        }
+
+        .grid-tile {
+            width: var(--tile-size);
+            height: var(--tile-size);
+            
+            position: relative;
+            overflow: hidden;
+            /* Add a subtle inner shadow for definition */
+            box-shadow: inset 30px 30px 60px rgb(255, 255, 255, 0.02);
+        }
+
+        .grid-tile-text {
+            position: absolute;
+            bottom: 0.5rem;
+            right: 0.5rem;
+            text-align: right;
+            font-size: 1rem;
+            line-height: 1.1;
+            font-weight: 600;
+            /* Text shadow for readability on busy colors */
+            text-shadow: 0 0 5px rgba(0,0,0,0.1), 0 0 3px rgba(0,0,0,0.1);
+            
+        }
+
+        .grid-tile-name {
+            display: block;
+        }
+
+        .grid-tile-hex {
+            display: block;
+            opacity: 0.8;
+            font-size: 0.7rem;
+        }
+
+        /* Keyframes for the seamless scroll */
+/* Keyframes for the seamless scroll */
+        @keyframes scroll-combined {
+        100% { 
+        transform: translateX(var(--scroll-distance)) translateY(var(--scroll-distance)); 
+    }
+}
+        /* --- END NEW --- */
+
     </style>
 </head>
-<body class="bg-neutral-100 dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 min-h-screen flex items-center justify-center p-4 transition-colors duration-300">
+<body class="text-neutral-900 dark:text-neutral-100 min-h-screen flex items-center justify-center p-4 transition-colors duration-300">
 
+    <div id="background-grid-container">
+        <div id="background-grid-scroller"></div>
+    </div>
     <div class="max-w-md w-full">
-        <h1 class="text-3xl font-bold text-center mb-6">Color Guessing Game</h1>
-
         <div id="start-screen" class="bg-white dark:bg-neutral-800 rounded-lg shadow-xl p-8 text-center">
+            <h1 class="text-3xl font-bold text-center mb-6">Color Guessing Game</h1>
             <p class="text-lg mb-6">Guess the color from the name, or the name from the color. You have 20 rounds. Good luck!</p>
             <button id="start-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
                 Start Game
@@ -158,7 +234,16 @@
         let processingAnswer = false;
         let isHardMode = false;
         const TOTAL_ROUNDS = 20;
+        const HARD_MODE_KEY = 'colorGameHardMode';
+        const LIBRARY_KEY = 'colorGameLibrary';
  
+        // --- NEW: Background Grid State ---
+        let shuffledColorLibrary = [];
+        let debouncedBuildGrid;
+        const TILE_SIZE_REM = 20;
+        const SCROLL_BUFFER_TILES = 10;
+        // --- END NEW ---
+
         
         const startScreen = document.getElementById('start-screen');
         const gameScreen = document.getElementById('game-screen');
@@ -186,10 +271,8 @@
         const endBestScoreHardEl = document.getElementById('end-best-score-hard');
         const newBestScoreText = document.getElementById('new-best-score-text');
 
-        // === NEW: End Screen Details ===
         const endLibraryEl = document.getElementById('end-library');
         const endModeEl = document.getElementById('end-mode');
-        // === END NEW ===
 
         const helpBtn = document.getElementById('help-btn');
         const helpModal = document.getElementById('help-modal');
@@ -197,6 +280,9 @@
         const colorListContainer = document.getElementById('color-list-container');
         
         const librarySelect = document.getElementById('library-select');
+        const hardModeToggle = document.getElementById('hard-mode-toggle');
+
+        
  
         
         
@@ -211,6 +297,10 @@
                 const colors = parseCSV(csvText);
                 currentColorLibrary = colors; 
                 
+                // --- NEW: Update background grid on library load ---
+                shuffledColorLibrary = shuffleArray([...currentColorLibrary]);
+                buildAndPlaceGrid();
+                // --- END NEW ---
                 
                 populateColorList();
                 
@@ -229,6 +319,12 @@
                     { name: "green", hex: "#008000" }, 
                     { name: "blue", hex: "#0000ff" }
                 ];
+                
+                // --- NEW: Update background grid with fallback ---
+                shuffledColorLibrary = shuffleArray([...currentColorLibrary]);
+                buildAndPlaceGrid();
+                // --- END NEW ---
+
                 populateColorList();
             }
         }
@@ -312,6 +408,7 @@
         }
  
         
+ 
         function populateColorList() {
             const list = document.createElement('div');
             list.className = 'flex flex-col gap-2';
@@ -412,6 +509,8 @@
             isHardMode = document.getElementById('hard-mode-toggle').checked;
             
             startScreen.classList.add('hidden');
+            document.getElementById('background-grid-scroller').style.opacity = '0';
+            
             endScreen.classList.add('hidden');
             gameScreen.classList.remove('hidden');
             
@@ -544,20 +643,16 @@
             setTimeout(nextRound, 1200);
         }
 
-        // === UPDATED: endGame Function ===
         function endGame() {
             finalScoreEl.textContent = score;
             rankEl.textContent = getRank(score);
             
-            // === NEW ===
-            // Get the full text of the selected option (e.g., "W3 Colors (147)")
             const libraryName = librarySelect.options[librarySelect.selectedIndex].text;
             const modeName = isHardMode ? "Hard" : "Easy";
             endLibraryEl.textContent = libraryName;
             endModeEl.textContent = modeName;
-            // === END NEW ===
 
-            saveBestScore(); // This also updates the 'end-best-score' text
+            saveBestScore(); 
             
             gameScreen.classList.add('hidden');
             endScreen.classList.remove('hidden');
@@ -579,6 +674,7 @@
             endScreen.classList.add('hidden');
             startScreen.classList.remove('hidden');
             loadBestScore(); 
+            document.getElementById('background-grid-scroller').style.opacity = '1';
         });
         
         helpBtn.addEventListener('click', showHelpModal);
@@ -591,16 +687,184 @@
 
         librarySelect.addEventListener('change', async (e) => {
             const selectedFile = e.target.value;
+            localStorage.setItem(LIBRARY_KEY, selectedFile);
             helpBtn.textContent = "Loading Library...";
+            
+            // --- MODIFIED: Load library and *then* update grid ---
             await loadColorLibrary(selectedFile);
+            // buildAndPlaceGrid() is now called *inside* loadColorLibrary
+            // --- END MODIFIED ---
+
             loadBestScore();
             helpBtn.textContent = "Show Color Reference";
         });
 
+        hardModeToggle.addEventListener('change', () => {
+            localStorage.setItem(HARD_MODE_KEY, hardModeToggle.checked);
+        });
+
         
         
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+        // --- END NEW ---
+
+
+        // --- NEW: Color Helper - HEX to HSL ---
+        function hexToHsl(hex) {
+            const { r, g, b } = hexToRgb(hex);
+            const r_norm = r / 255;
+            const g_norm = g / 255;
+            const b_norm = b / 255;
+            const max = Math.max(r_norm, g_norm, b_norm);
+            const min = Math.min(r_norm, g_norm, b_norm);
+            let h, s, l = (max + min) / 2;
+
+            if (max === min) {
+                h = s = 0; // achromatic
+            } else {
+                const d = max - min;
+                s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+                switch (max) {
+                    case r_norm: h = (g_norm - b_norm) / d + (g_norm < b_norm ? 6 : 0); break;
+                    case g_norm: h = (b_norm - r_norm) / d + 2; break;
+                    case b_norm: h = (r_norm - g_norm) / d + 4; break;
+                }
+                h /= 6;
+            }
+            return { h: h * 360, s: s * 100, l: l * 100 };
+        }
+        // --- END NEW ---
+
+        // --- NEW: Color Helper - Get Subtle Text Color ---
+        function getSubtleTextColor(hex) {
+            const brightness = getBrightness(hex);
+            const { h ,s, l} = hexToHsl(hex);
+            s2 = s / 2;
+            if (brightness > 128) {
+                // Light background -> dark, subtle text
+                return `hsl(${h}, ${s2}%, 0%, 70%)`;
+            } else {
+                // Dark background -> light, subtle text
+                return `hsl(${h}, ${s2}%, 100%, 70%)`;
+            }
+        }
+        // --- END NEW ---
+
+        // --- NEW: Build and Place Background Grid ---
+function buildAndPlaceGrid() {
+            const container = document.getElementById('background-grid-container');
+            const scroller = document.getElementById('background-grid-scroller');
+            if (!container || !scroller) return;
+
+            // Clear old grid and stop animation
+            scroller.innerHTML = '';
+            scroller.style.animation = 'none';
+
+            if (!shuffledColorLibrary || shuffledColorLibrary.length === 0) {
+                return;
+            }
+            
+            // Get pixel size of 1 rem
+            const remInPixels = parseFloat(getComputedStyle(document.documentElement).fontSize);
+            const tilePixelSize = TILE_SIZE_REM * remInPixels;
+
+            const containerWidth = container.clientWidth;
+            const containerHeight = container.clientHeight;
+
+            // Calculate columns/rows needed to fill viewport
+            const cols = Math.ceil(containerWidth / tilePixelSize);
+            const rows = Math.ceil(containerHeight / tilePixelSize);
+
+            // Add buffer for seamless scrolling
+            // This is the total number of tiles we will *create*
+            const totalCols = cols + SCROLL_BUFFER_TILES;
+            const totalRows = rows + SCROLL_BUFFER_TILES;
+
+            // Set scroller dimensions and grid template
+            scroller.style.gridTemplateColumns = `repeat(${totalCols}, ${TILE_SIZE_REM}rem)`;
+            scroller.style.width = `${totalCols * TILE_SIZE_REM}rem`;
+            scroller.style.height = `${totalRows * TILE_SIZE_REM}rem`;
+
+            const fragment = document.createDocumentFragment();
+            const libSize = shuffledColorLibrary.length;
+
+            // --- NEW: TILING LOGIC ---
+            // 1. Create a "base pattern" of colors. This is our repeating block.
+            // Its size is `BUFFER x BUFFER` tiles.
+            const basePattern = Array(SCROLL_BUFFER_TILES).fill(null).map(() => Array(SCROLL_BUFFER_TILES));
+            for (let r = 0; r < SCROLL_BUFFER_TILES; r++) {
+                for (let c = 0; c < SCROLL_BUFFER_TILES; c++) {
+                    // Use a unique color for each tile in the base pattern
+                    const index = (r * SCROLL_BUFFER_TILES + c) % libSize;
+                    basePattern[r][c] = shuffledColorLibrary[index];
+                }
+            }
+
+            // 2. Create the *entire* grid (totalRows x totalCols) by
+            //    tiling this base pattern.
+            for (let r = 0; r < totalRows; r++) {
+                for (let c = 0; c < totalCols; c++) {
+                    
+                    // Use modulo to wrap around the base pattern
+                    const patternRow = r % SCROLL_BUFFER_TILES;
+                    const patternCol = c % SCROLL_BUFFER_TILES;
+                    const color = basePattern[patternRow][patternCol];
+                    
+                    const tile = document.createElement('div');
+                    tile.className = 'grid-tile';
+                    tile.style.backgroundColor = color.hex;
+                    
+                    const textColor = getSubtleTextColor(color.hex);
+                    
+                    tile.innerHTML = `
+                        <div class="grid-tile-text" style="color: ${textColor};">
+                            <span class="grid-tile-name">${formatColorName(color.name)}</span>
+                            <span class="grid-tile-hex">${color.hex.toUpperCase()}</span>
+                        </div>
+                    `;
+                    fragment.appendChild(tile);
+                }
+            }
+            // --- END NEW TILING LOGIC ---
+            
+            scroller.appendChild(fragment);
+
+            // Use requestAnimationFrame to ensure layout is painted before starting animation
+            requestAnimationFrame(() => {
+                
+                scroller.style.animation = `scroll-combined 60s linear infinite`;
+            });
+        }
+        // --- END NEW ---
     
         async function initializeGame() {
+
+            const savedHardMode = localStorage.getItem(HARD_MODE_KEY);
+            if (savedHardMode !== null) {
+                // We store 'true' or 'false' (strings), so we compare to 'true'
+                hardModeToggle.checked = (savedHardMode === 'true');
+            }
+
+            const savedLibrary = localStorage.getItem(LIBRARY_KEY);
+            if (savedLibrary) {
+                // Check if the saved library is still a valid option
+                if (Array.from(librarySelect.options).some(opt => opt.value === savedLibrary)) {
+                    librarySelect.value = savedLibrary;
+                } else {
+                    console.warn(`Saved library "${savedLibrary}" not found. Using default.`);
+                    localStorage.removeItem(LIBRARY_KEY); // Clear invalid value
+                }
+            }
             totalRoundsEl.textContent = TOTAL_ROUNDS;
             
             const optionsToLoad = Array.from(librarySelect.options);
@@ -632,14 +896,25 @@
 
             if (defaultLibraryData) {
                 currentColorLibrary = defaultLibraryData;
+                
+                // --- NEW: Initial background build ---
+                shuffledColorLibrary = shuffleArray([...currentColorLibrary]);
+                buildAndPlaceGrid();
+                // --- END NEW ---
+
                 populateColorList();
             } else {
                 console.error("Default library failed to load, running fallback.");
-                await loadColorLibrary(defaultLibraryFile);
+                await loadColorLibrary(defaultLibraryFile); // This will also call buildAndPlaceGrid
             }
             
             
             loadBestScore();
+
+            // --- NEW: Add debounced resize listener ---
+            debouncedBuildGrid = debounce(buildAndPlaceGrid, 250);
+            window.addEventListener('resize', debouncedBuildGrid);
+            // --- END NEW ---
         }
 
         initializeGame();
