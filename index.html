@@ -143,7 +143,6 @@
     </div>
 
     <script>
-        // --- DATA: Now loaded from CSV ---
         
         // --- Game State Variables ---
         let currentColorLibrary = []; // This will hold the loaded colors
@@ -152,12 +151,12 @@
         let bestScoreEasy = 0;
         let bestScoreHard = 0;
         let currentCorrectColor = null;
-        let gameMode = 'colorToName'; // 'colorToName' or 'nameToColor'
+        let gameMode = 'colorToName'; 
         let processingAnswer = false;
         let isHardMode = false;
         const TOTAL_ROUNDS = 20;
  
-        // --- DOM Elements ---
+        
         const startScreen = document.getElementById('start-screen');
         const gameScreen = document.getElementById('game-screen');
         const endScreen = document.getElementById('end-screen');
@@ -189,7 +188,6 @@
         const endModeEl = document.getElementById('end-mode');
         // === END NEW ===
 
-        // Help Modal Elements
         const helpBtn = document.getElementById('help-btn');
         const helpModal = document.getElementById('help-modal');
         const closeHelpBtn = document.getElementById('close-help-btn');
@@ -197,7 +195,8 @@
         
         const librarySelect = document.getElementById('library-select');
  
-        // --- NEW: CSV Loading Functions ---
+        
+        
         
         async function loadColorLibrary(filename) {
             try {
@@ -207,7 +206,8 @@
                 }
                 const csvText = await response.text();
                 const colors = parseCSV(csvText);
-                currentColorLibrary = colors; // Update the global state
+                currentColorLibrary = colors; 
+                
                 
                 populateColorList();
                 
@@ -251,7 +251,7 @@
             return colors;
         }
 
-        // --- Utility Functions ---
+        
 
         function formatColorName(name) {
             const spacedName = name.replace(/([A-Z])/g, ' $1');
@@ -308,7 +308,7 @@
             return arr;
         }
  
-        // --- New Help Modal Functions ---
+        
         function populateColorList() {
             const list = document.createElement('div');
             list.className = 'flex flex-col gap-2';
@@ -343,7 +343,8 @@
             helpModal.classList.add('hidden');
         }
 
-        // --- Hard Mode Helper Functions ---
+        
+
 
         function hexToRgb(hex) {
             if (!hex || hex.length !== 7 || hex[0] !== '#') {
@@ -397,7 +398,7 @@
             return [correctColor, ...closestColors];
         }
  
-        // --- Game Logic Functions ---
+        
  
         function startGame() {
             score = 0;
@@ -558,7 +559,6 @@
             gameScreen.classList.add('hidden');
             endScreen.classList.remove('hidden');
         }
-        // === END UPDATE ===
 
         function getRank(score) {
             const percentage = score / TOTAL_ROUNDS;
@@ -567,15 +567,15 @@
             if (percentage <= 0.75) return "Color Middle Manager";
             if (percentage <= 0.9) return "Color Connoisseur";
             if (percentage === 1) return "Color Lord";
-            return "Color Connoisseur"; // Default for scores like 19/20
+            return "Color Connoisseur"; 
         }
 
-        // --- Event Listeners ---
+        
         startBtn.addEventListener('click', startGame);
         playAgainBtn.addEventListener('click', () => {
             endScreen.classList.add('hidden');
             startScreen.classList.remove('hidden');
-            loadBestScore(); // Update best score on start screen
+            loadBestScore(); 
         });
         
         helpBtn.addEventListener('click', showHelpModal);
@@ -594,7 +594,9 @@
             helpBtn.textContent = "Show Color Reference";
         });
 
-        // --- Initial Load ---
+        
+        
+    
         async function initializeGame() {
             totalRoundsEl.textContent = TOTAL_ROUNDS;
             
@@ -631,7 +633,8 @@
             } else {
                 console.error("Default library failed to load, running fallback.");
                 await loadColorLibrary(defaultLibraryFile);
-Half-Life 3            }
+            }
+            
             
             loadBestScore();
         }
