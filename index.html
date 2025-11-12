@@ -76,7 +76,6 @@
                 <label for="library-select" class="block mb-2 font-semibold text-neutral-700 dark:text-neutral-300">Color Library</label>
                 <select id="library-select" class="w-full bg-neutral-100 dark:bg-neutral-700 border border-neutral-300 dark:border-neutral-600 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="w3.csv" data-basename="W3 Colors">W3 Colors</option>
-                    <option value="pantone.csv" data-basename="Pantone">Pantone</option>
                     <option value="hexa.csv" data-basename="ColorHexa">ColorHexa</option>
                     <option value="crayola.csv" data-basename="Crayola">Crayola</option>
                     <option value="xkcd.csv" data-basename="XKCD">XKCD</option>
@@ -122,12 +121,16 @@
                     <div>Best (Easy): <span id="end-best-score-easy" class="font-bold">0</span></div>
                     <div>Best (Hard): <span id="end-best-score-hard" class="font-bold">0</span></div>
                 </div>
+                
+                <div class="text-md text-neutral-600 dark:text-neutral-400 mb-8">
+                    <div>Library: <span id="end-library" class="font-bold"></span></div>
+                    <div>Mode: <span id="end-mode" class="font-bold"></span></div>
+                </div>
                 <button id="play-again-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
                     Play Again
                 </button>
             </div>
         </div>
-
         <div id="help-modal" class="hidden absolute inset-0 bg-neutral-900 bg-opacity-80 flex items-center justify-center p-4 z-50">
             <div class="bg-white dark:bg-neutral-800 rounded-lg shadow-2xl p-6 w-full max-w-md relative">
                 <h2 class="text-2xl font-bold mb-4 text-center">Color Reference</h2>
@@ -140,21 +143,21 @@
     </div>
 
     <script>
+        // --- DATA: Now loaded from CSV ---
         
-        
-        
-        let currentColorLibrary = []; 
+        // --- Game State Variables ---
+        let currentColorLibrary = []; // This will hold the loaded colors
         let score = 0;
         let currentRound = 0;
         let bestScoreEasy = 0;
         let bestScoreHard = 0;
         let currentCorrectColor = null;
-        let gameMode = 'colorToName'; 
+        let gameMode = 'colorToName'; // 'colorToName' or 'nameToColor'
         let processingAnswer = false;
         let isHardMode = false;
         const TOTAL_ROUNDS = 20;
  
-        
+        // --- DOM Elements ---
         const startScreen = document.getElementById('start-screen');
         const gameScreen = document.getElementById('game-screen');
         const endScreen = document.getElementById('end-screen');
@@ -181,7 +184,12 @@
         const endBestScoreHardEl = document.getElementById('end-best-score-hard');
         const newBestScoreText = document.getElementById('new-best-score-text');
 
-        
+        // === NEW: End Screen Details ===
+        const endLibraryEl = document.getElementById('end-library');
+        const endModeEl = document.getElementById('end-mode');
+        // === END NEW ===
+
+        // Help Modal Elements
         const helpBtn = document.getElementById('help-btn');
         const helpModal = document.getElementById('help-modal');
         const closeHelpBtn = document.getElementById('close-help-btn');
@@ -189,9 +197,8 @@
         
         const librarySelect = document.getElementById('library-select');
  
+        // --- NEW: CSV Loading Functions ---
         
-        
-
         async function loadColorLibrary(filename) {
             try {
                 const response = await fetch(filename);
@@ -200,11 +207,9 @@
                 }
                 const csvText = await response.text();
                 const colors = parseCSV(csvText);
-                currentColorLibrary = colors; 
-                
+                currentColorLibrary = colors; // Update the global state
                 
                 populateColorList();
-                
                 
                 const selectedOption = librarySelect.querySelector(`option[value="${filename}"]`);
                 if (selectedOption) {
@@ -216,7 +221,6 @@
             } catch (error) {
                 console.error("Error loading color library:", error);
                 alert(`Could not load color library '${filename}'. Please check the file and try again. Using a fallback list.`);
-                
                 currentColorLibrary = [
                     { name: "red", hex: "#ff0000" }, 
                     { name: "green", hex: "#008000" }, 
@@ -226,20 +230,17 @@
             }
         }
 
-
         function parseCSV(text) {
             const lines = text.split('\n');
             const colors = [];
-            
             for (let i = 1; i < lines.length; i++) {
                 const line = lines[i].trim();
-                if (!line) continue; 
+                if (!line) continue;
                 
                 const parts = line.split(',');
                 if (parts.length >= 2) {
                     const name = parts[0].trim();
                     const hex = parts[1].trim();
-                    
                     if (name && hex.startsWith('#')) {
                         colors.push({ name, hex });
                     } else {
@@ -250,23 +251,19 @@
             return colors;
         }
 
-        
+        // --- Utility Functions ---
 
         function formatColorName(name) {
-            
             const spacedName = name.replace(/([A-Z])/g, ' $1');
-            
             return spacedName.replace(/\b(\w)/g, char => char.toUpperCase());
         }
  
-        
         function getScoreKey(isHard) {
-            const filename = librarySelect.value; 
+            const filename = librarySelect.value;
             const mode = isHard ? 'hard' : 'easy';
             return `colorGameBestScore_${mode}_${filename}`;
         }
  
-        
         function loadBestScore() {
             const easyKey = getScoreKey(false);
             const hardKey = getScoreKey(true);
@@ -274,17 +271,14 @@
             bestScoreEasy = localStorage.getItem(easyKey) || 0;
             bestScoreHard = localStorage.getItem(hardKey) || 0;
             
-            
             startBestScoreEasyEl.textContent = bestScoreEasy;
             startBestScoreHardEl.textContent = bestScoreHard;
             endBestScoreEasyEl.textContent = bestScoreEasy;
             endBestScoreHardEl.textContent = bestScoreHard;
             
-            
             bestScoreEl.textContent = isHardMode ? bestScoreHard : bestScoreEasy;
         }
  
-        
         function saveBestScore() {
             if (isHardMode) {
                 if (score > bestScoreHard) {
@@ -299,16 +293,13 @@
                     newBestScoreText.classList.remove('hidden');
                 }
             }
-            
             loadBestScore();
         }
  
-        
         function getRandomElement(arr) {
             return arr[Math.floor(Math.random() * arr.length)];
         }
 
-        
         function shuffleArray(arr) {
             for (let i = arr.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -317,7 +308,7 @@
             return arr;
         }
  
-        
+        // --- New Help Modal Functions ---
         function populateColorList() {
             const list = document.createElement('div');
             list.className = 'flex flex-col gap-2';
@@ -340,7 +331,7 @@
                 item.appendChild(name);
                 list.appendChild(item);
             });
-            colorListContainer.innerHTML = ''; 
+            colorListContainer.innerHTML = '';
             colorListContainer.appendChild(list);
         }
 
@@ -352,9 +343,8 @@
             helpModal.classList.add('hidden');
         }
 
-        
+        // --- Hard Mode Helper Functions ---
 
-        
         function hexToRgb(hex) {
             if (!hex || hex.length !== 7 || hex[0] !== '#') {
                 console.error('Invalid hex color:', hex);
@@ -366,7 +356,6 @@
             return { r, g, b };
         }
 
-        
         function colorDistance(color1, color2) {
             const rgb1 = hexToRgb(color1.hex);
             const rgb2 = hexToRgb(color2.hex);
@@ -377,7 +366,6 @@
             );
         }
 
-        
         function getCloseColors(correctColor, num) {
             const distances = currentColorLibrary
                 .filter(color => color.hex !== correctColor.hex) 
@@ -409,7 +397,7 @@
             return [correctColor, ...closestColors];
         }
  
-        
+        // --- Game Logic Functions ---
  
         function startGame() {
             score = 0;
@@ -423,7 +411,7 @@
             endScreen.classList.add('hidden');
             gameScreen.classList.remove('hidden');
             
-            loadBestScore(); 
+            loadBestScore();
             bestScoreEl.textContent = isHardMode ? bestScoreHard : bestScoreEasy;
             
             totalRoundsEl.textContent = TOTAL_ROUNDS;
@@ -552,14 +540,25 @@
             setTimeout(nextRound, 1200);
         }
 
+        // === UPDATED: endGame Function ===
         function endGame() {
             finalScoreEl.textContent = score;
             rankEl.textContent = getRank(score);
-            saveBestScore(); 
+            
+            // === NEW ===
+            // Get the full text of the selected option (e.g., "W3 Colors (147)")
+            const libraryName = librarySelect.options[librarySelect.selectedIndex].text;
+            const modeName = isHardMode ? "Hard" : "Easy";
+            endLibraryEl.textContent = libraryName;
+            endModeEl.textContent = modeName;
+            // === END NEW ===
+
+            saveBestScore(); // This also updates the 'end-best-score' text
             
             gameScreen.classList.add('hidden');
             endScreen.classList.remove('hidden');
         }
+        // === END UPDATE ===
 
         function getRank(score) {
             const percentage = score / TOTAL_ROUNDS;
@@ -568,15 +567,15 @@
             if (percentage <= 0.75) return "Color Middle Manager";
             if (percentage <= 0.9) return "Color Connoisseur";
             if (percentage === 1) return "Color Lord";
-            return "Color Connoisseur"; 
+            return "Color Connoisseur"; // Default for scores like 19/20
         }
 
-        
+        // --- Event Listeners ---
         startBtn.addEventListener('click', startGame);
         playAgainBtn.addEventListener('click', () => {
             endScreen.classList.add('hidden');
             startScreen.classList.remove('hidden');
-            loadBestScore(); 
+            loadBestScore(); // Update best score on start screen
         });
         
         helpBtn.addEventListener('click', showHelpModal);
@@ -587,31 +586,22 @@
             }
         });
 
-        
         librarySelect.addEventListener('change', async (e) => {
             const selectedFile = e.target.value;
             helpBtn.textContent = "Loading Library...";
-            
-            
             await loadColorLibrary(selectedFile);
-            
-            
             loadBestScore();
-            
             helpBtn.textContent = "Show Color Reference";
         });
 
-        
-        
-    
+        // --- Initial Load ---
         async function initializeGame() {
-            totalRoundsEl.textContent = TOTAL_ROUNDS; 
+            totalRoundsEl.textContent = TOTAL_ROUNDS;
             
             const optionsToLoad = Array.from(librarySelect.options);
             const defaultLibraryFile = librarySelect.value;
-            let defaultLibraryData = null; 
+            let defaultLibraryData = null;
 
-            
             const loadPromises = optionsToLoad.map(async (option) => {
                 const filename = option.value;
                 const baseText = option.dataset.basename;
@@ -622,9 +612,7 @@
                     const csvText = await response.text();
                     const colors = parseCSV(csvText);
                     
-                    
                     option.text = `${baseText} (${colors.length})`;
-                    
                     
                     if (filename === defaultLibraryFile) {
                         defaultLibraryData = colors;
@@ -635,26 +623,19 @@
                 }
             });
 
-            
             await Promise.all(loadPromises);
 
-            
             if (defaultLibraryData) {
                 currentColorLibrary = defaultLibraryData;
                 populateColorList();
             } else {
-                
-                
                 console.error("Default library failed to load, running fallback.");
                 await loadColorLibrary(defaultLibraryFile);
-            }
-            
+Half-Life 3            }
             
             loadBestScore();
         }
-        
 
-        
         initializeGame();
 
     </script>
